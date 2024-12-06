@@ -11,6 +11,19 @@ import pandas as pd
 import os
 from datetime import datetime, timedelta
 from io import BytesIO
+import zipfile
+
+# Save the annotated frames as a video file
+def save_video(frames, output_path, fps):
+    if frames:
+        height, width, layers = frames[0].shape
+        video = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+
+        for frame in frames:
+            video.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+
+        video.release()
+
 
 # Fungsi untuk mengubah input string ke array numpy
 def parse_coordinates(coord_string):
@@ -159,6 +172,7 @@ if uploaded_video and SOURCE is not None and start_time is not None:
     plot_counter = 0  # Counter untuk key yang unik
 
     frames = list(sv.get_video_frames_generator(source_path=tfile.name))
+    annotated_frames = []  # List to store annotated frames
 
     while st.session_state.status == 'running' and st.session_state.frame_index < len(frames):
         frame = frames[st.session_state.frame_index]
@@ -242,6 +256,7 @@ if uploaded_video and SOURCE is not None and start_time is not None:
 
         # Convert annotated frame to RGB for display
         annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+        annotated_frames.append(annotated_frame)  # Add frame to list
 
         # Display frame
         stframe.image(annotated_frame, channels="RGB")
@@ -318,33 +333,78 @@ if st.session_state.status == 'stopped' and st.session_state.last_frame is not N
         vehicle_speed_placeholder.empty()  # Kosongkan placeholder
         vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
 
-# Buat DataFrame untuk kecepatan setiap ID terdeteksi
-speed_df = pd.DataFrame(st.session_state.vehicle_speed_data)
+# Save the video and Excel files and provide a download button for the ZIP file
+if annotated_frames:
+    video_file_path = 'outputTest/output_video.mp4'
+    save_video(annotated_frames, video_file_path, video_info.fps)
 
-# Ambil semua nama kelas dari model
-all_classes = list(model.names.values())
+    # Buat DataFrame untuk kecepatan setiap ID terdeteksi
+    speed_df = pd.DataFrame(st.session_state.vehicle_speed_data)
 
-# Buat DataFrame untuk jumlah kendaraan dan kecelakaan
-vehicle_count_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Class", "Count"])
-accident_count_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Class", "Count"])
+    # Ambil semua nama kelas dari model
+    all_classes = list(model.names.values())
 
-# Gabungkan semua kelas kendaraan dan kecelakaan dengan nilai 0 untuk yang tidak terdeteksi
-vehicle_count_df = vehicle_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
-accident_count_df = accident_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
+    # Buat DataFrame untuk jumlah kendaraan dan kecelakaan
+    vehicle_count_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Class", "Count"])
+    accident_count_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Class", "Count"])
 
-# Gabungkan DataFrame kendaraan dan kecelakaan
-count_df = pd.concat([vehicle_count_df, accident_count_df], ignore_index=True)
+    # Gabungkan semua kelas kendaraan dan kecelakaan dengan nilai 0 untuk yang tidak terdeteksi
+    vehicle_count_df = vehicle_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
+    accident_count_df = accident_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
 
-# Tulis kedua DataFrame ke dalam satu file Excel dengan dua sheet
-output = BytesIO()
-with pd.ExcelWriter(output, engine='openpyxl') as writer:
-    speed_df.to_excel(writer, index=False, sheet_name='Kecepatan')
-    count_df.to_excel(writer, index=False, sheet_name='Jumlah Kelas')
+    # Gabungkan DataFrame kendaraan dan kecelakaan
+    count_df = pd.concat([vehicle_count_df, accident_count_df], ignore_index=True)
 
-# Sediakan tombol untuk mengunduh file Excel
-st.sidebar.download_button(
-    label="Unduh Hasil Deteksi",
-    data=output.getvalue(),
-    file_name="hasil_deteksi.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
+    # Tulis kedua DataFrame ke dalam satu file Excel dengan dua sheet
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        speed_df.to_excel(writer, index=False, sheet_name='Kecepatan')
+        count_df.to_excel(writer, index=False, sheet_name='Jumlah Kelas')
+    excel_data = output.getvalue()
+
+    # Create a ZIP file containing both the video and Excel files
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+        zip_file.write(video_file_path, os.path.basename(video_file_path))
+        zip_file.writestr('hasil_deteksi.xlsx', excel_data)
+
+    # Provide a download button for the ZIP file
+    st.sidebar.download_button(
+        label="Download Hasil Deteksi",
+        data=zip_buffer.getvalue(),
+        file_name='output_files.zip',
+        mime='application/zip'
+    )
+
+    # Delete the video file after download
+    os.remove(video_file_path)
+
+
+# # Sediakan tombol untuk mengunduh file Excel
+# st.sidebar.download_button(
+#     label="Unduh Hasil Deteksi",
+#     data=output.getvalue(),
+#     file_name="hasil_deteksi.xlsx",
+#     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+# )
+
+# # Save the video and provide a download button
+# with NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_video_file:
+#     save_video(annotated_frames, tmp_video_file.name, video_info.fps)
+#     st.sidebar.download_button(
+#         label="Download Video",
+#         data=open(tmp_video_file.name, 'rb').read(),
+#         file_name='output_video.mp4',
+#         mime='video/mp4'
+#     )
+
+# # Save the video and provide a download button if frames are available
+# if annotated_frames:
+#     video_file_path = 'output_video.mp4'
+#     save_video(annotated_frames, video_file_path, video_info.fps)
+#     st.sidebar.download_button(
+#         label="Download Video",
+#         data=open(video_file_path, 'rb').read(),
+#         file_name='output_video.mp4',
+#         mime='video/mp4'
+#     )
