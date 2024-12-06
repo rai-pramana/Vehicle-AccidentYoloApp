@@ -1,144 +1,143 @@
 import streamlit as st
-from ultralytics import YOLO
 import cv2
 import numpy as np
-import tempfile
+from collections import defaultdict, deque
+from ultralytics import YOLO
+import supervision as sv
+from tempfile import NamedTemporaryFile
+import time
 import torch
 
-def get_text_color(bg_color):
-    luminance = (0.299 * bg_color[2] + 0.587 * bg_color[1] + 0.114 * bg_color[0])
-    return (0, 0, 0) if luminance > 128 else (255, 255, 255)
+# Fungsi untuk mengubah input string ke array numpy
+def parse_coordinates(coord_string):
+    try:
+        points = [list(map(int, point.split(','))) for point in coord_string.split(';')]
+        return np.array(points)
+    except:
+        st.error("Format koordinat tidak valid. Gunakan format: x1,y1;x2,y2;x3,y3;x4,y4")
+        return None
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Load YOLO model
-model = YOLO('models/vehicle-accident.pt').to(device)  # Ganti dengan model Anda
+class ViewTransformer:
+    def __init__(self, source: np.ndarray, target: np.ndarray) -> None:
+        source = source.astype(np.float32)
+        target = target.astype(np.float32)
+        self.m = cv2.getPerspectiveTransform(source, target)
 
-class_names = model.names
-class_colors = {
-    0: (255, 0, 0), 1: (0, 255, 0), 2: (0, 0, 255), 3: (255, 255, 0), 4: (255, 0, 255),
-    5: (0, 255, 255), 6: (128, 0, 0), 7: (0, 128, 0), 8: (0, 0, 128), 9: (128, 128, 0),
-    10: (128, 0, 128), 11: (0, 128, 128), 12: (64, 0, 0), 13: (0, 64, 0), 14: (0, 0, 64),
-    15: (64, 64, 0), 16: (64, 0, 64), 17: (0, 64, 64), 18: (192, 0, 0), 19: (0, 192, 0),
-    20: (0, 0, 192), 21: (192, 192, 0)
-}
+    def transform_points(self, points: np.ndarray) -> np.ndarray:
+        if points.size == 0:
+            return points
+        reshaped_points = points.reshape(-1, 1, 2).astype(np.float32)
+        transformed_points = cv2.perspectiveTransform(reshaped_points, self.m)
+        return transformed_points.reshape(-1, 2)
 
-# Streamlit layout
-st.title("YOLO Object Detection with Streamlit")
-st.sidebar.title("Upload Image or Video")
 
-# Pilihan input
-uploaded_file = st.sidebar.file_uploader("Upload a file (image or video)", type=["jpg", "jpeg", "png", "mp4", "avi", "mov", "mkv"])
+# Streamlit UI
+st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Dengan Bounding Area")
 
-# Jika file diunggah
-if uploaded_file:
-    file_ext = uploaded_file.name.split('.')[-1].lower()
+# Upload video
+uploaded_video = st.file_uploader("Upload Video", type=["mp4", "avi", "mov", "mkv"])
 
-    # Jika input adalah gambar
-    if file_ext in ["jpg", "jpeg", "png"]:
-        # Baca gambar
-        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+# Input untuk Target Width dan Height
+target_width = st.number_input("Target Width (meter)", min_value=1.0, max_value=100.0, value=13.56, step=0.01)
+target_height = st.number_input("Target Height (meter)", min_value=1.0, max_value=500.0, value=20.95, step=0.01)
 
-        # Konversi gambar ke grayscale sebelum deteksi
-        grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        grayscale_image_rgb = cv2.cvtColor(grayscale_image, cv2.COLOR_GRAY2RGB)
+# Input untuk Source Coordinates
+source_coordinates = st.text_input(
+    "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
+    value="619,394;1032,423;968,717;240,666"
+)
 
-        # Deteksi objek
-        results = model(grayscale_image_rgb)
+# Parse Source Coordinates
+SOURCE = parse_coordinates(source_coordinates)
+TARGET = np.array([[0, 0], [target_width - 1, 0], [target_width - 1, target_height - 1], [0, target_height - 1]])
 
-        # Gambarkan bounding box hasil deteksi pada gambar asli berwarna
-        for result in results:
-            for box in result.boxes:
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-                confidence = box.conf[0]
-                class_id = int(box.cls[0])
-                label = class_names[class_id]
-                color = class_colors[class_id]
-                idx = box.id
-                # Gambar bounding box
-                cv2.rectangle(image, (x1, y1), (x2, y2), color, 3)
-                
-                # Tentukan ukuran teks
-                text = f'ID {idx}: {label} {confidence:.2f}'
-                (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.8, 3)
-                
-                # Gambar latar belakang teks
-                cv2.rectangle(image, (x1, y1 - text_height - baseline), (x1 + text_width, y1), color, -1)
-                
-                # Tentukan warna teks berdasarkan luminansi latar belakang
-                text_color = get_text_color(color)
-                
-                # Tambahkan teks di atas latar belakang
-                cv2.putText(image, text, (x1, y1 - baseline), cv2.FONT_HERSHEY_SIMPLEX, 1.8, text_color, 3)
+# Confidence and IoU thresholds
+confidence_threshold = st.slider("Confidence Threshold", 0.0, 1.0, 0.3, 0.05)
+iou_threshold = st.slider("IoU Threshold", 0.0, 1.0, 0.7, 0.05)
 
-        # Tampilkan hasil di Streamlit
-        st.image(cv2.cvtColor(image, cv2.COLOR_BGR2RGB), caption="Detected Image", use_container_width=True)
+if uploaded_video and SOURCE is not None:
+    tfile = NamedTemporaryFile(delete=False)
+    tfile.write(uploaded_video.read())
 
-    # Jika input adalah video
-    elif file_ext in ["mp4", "avi", "mov", "mkv"]:
-        # Simpan video ke file sementara
-        tfile = tempfile.NamedTemporaryFile(delete=False)
-        tfile.write(uploaded_file.read())
-        tfile.close()
+    video_info = sv.VideoInfo.from_video_path(video_path=tfile.name)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        # Baca video
-        cap = cv2.VideoCapture(tfile.name)
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(cap.get(cv2.CAP_PROP_FPS))
+    # Load YOLO model
+    model = YOLO('models/vehicle-accident.pt').to(device)  # Ganti dengan model Anda
 
-        # Buat VideoWriter untuk menyimpan video hasil
-        out = cv2.VideoWriter('outputTest/output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+    byte_track = sv.ByteTrack(
+        frame_rate=video_info.fps,
+        track_activation_threshold=confidence_threshold
+    )
 
-        stframe = st.empty()
-        
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
+    thickness = sv.calculate_optimal_line_thickness(video_info.resolution_wh)
+    text_scale = sv.calculate_optimal_text_scale(video_info.resolution_wh)
+    box_annotator = sv.BoxAnnotator(thickness=thickness)
+    label_annotator = sv.LabelAnnotator(
+        text_scale=text_scale,
+        text_thickness=thickness,
+        text_position=sv.Position.BOTTOM_CENTER,
+    )
+    trace_annotator = sv.TraceAnnotator(
+        thickness=thickness,
+        trace_length=video_info.fps * 2,
+        position=sv.Position.BOTTOM_CENTER,
+    )
 
-            # Konversi frame ke grayscale sebelum deteksi
-            grayscale_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            grayscale_frame_rgb = cv2.cvtColor(grayscale_frame, cv2.COLOR_GRAY2RGB)
+    polygon_zone = sv.PolygonZone(polygon=SOURCE)
+    view_transformer = ViewTransformer(source=SOURCE, target=TARGET)
+    coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
 
-            # Deteksi objek
-            results = model(grayscale_frame_rgb)
+    frame_generator = sv.get_video_frames_generator(source_path=tfile.name)
 
-            # Gambarkan bounding box hasil deteksi pada frame asli berwarna
-            for result in results:
-                for box in result.boxes:
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
-                    confidence = box.conf[0]
-                    class_id = int(box.cls[0])
-                    label = class_names[class_id]
-                    color = class_colors[class_id]
-                    idx = box.id
-                    # Gambar bounding box
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3)
-                    
-                    # Tentukan ukuran teks
-                    text = f'ID {idx}: {label} {confidence:.2f}'
-                    (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1.8, 3)
-                    
-                    # Gambar latar belakang teks
-                    cv2.rectangle(frame, (x1, y1 - text_height - baseline), (x1 + text_width, y1), color, -1)
-                    
-                    # Tentukan warna teks berdasarkan luminansi latar belakang
-                    text_color = get_text_color(color)
-                    
-                    # Tambahkan teks di atas latar belakang
-                    cv2.putText(frame, text, (x1, y1 - baseline), cv2.FONT_HERSHEY_SIMPLEX, 1.8, text_color, 3)
+    stframe = st.empty()  # Tempat untuk menampilkan frame
+    for frame in frame_generator:
+        # Convert frame to grayscale
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray_frame = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)  # Convert back to 3 channels
 
-            stframe.image(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), channels="RGB", use_container_width=True)
+        result = model(gray_frame)[0]
+        detections = sv.Detections.from_ultralytics(result)
+        detections = detections[detections.confidence > confidence_threshold]
+        detections = detections[polygon_zone.trigger(detections)]
+        detections = detections.with_nms(threshold=iou_threshold)
+        detections = byte_track.update_with_detections(detections=detections)
 
-            # Tulis frame hasil ke video output
-            out.write(frame)
+        points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
+        points = view_transformer.transform_points(points=points).astype(int)
 
-        # Release resources
-        cap.release()
-        out.release()
+        for tracker_id, [_, y] in zip(detections.tracker_id, points):
+            coordinates[tracker_id].append(y)
 
-        # Tampilkan video hasil di Streamlit
-        with open('outputTest/output.mp4', "rb") as file:
-            st.download_button(label="Download Video", data=file, file_name="output.mp4", mime="video/mp4")
+        labels = []
+        for tracker_id in detections.tracker_id:
+            if len(coordinates[tracker_id]) < video_info.fps / 2:
+                labels.append(f"#{tracker_id}")
+            else:
+                coordinate_start = coordinates[tracker_id][-1]
+                coordinate_end = coordinates[tracker_id][0]
+                distance = abs(coordinate_start - coordinate_end)
+                time = len(coordinates[tracker_id]) / video_info.fps
+                speed = distance / time * 3.6
+                labels.append(f"#{tracker_id} {int(speed)} km/h")
+
+        annotated_frame = frame.copy()
+        # Gambar bounding area
+        cv2.polylines(
+            annotated_frame,
+            [SOURCE],
+            isClosed=True,
+            color=(0, 255, 0),
+            thickness=thickness,
+        )
+
+        annotated_frame = trace_annotator.annotate(scene=annotated_frame, detections=detections)
+        annotated_frame = box_annotator.annotate(scene=annotated_frame, detections=detections)
+        annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections, labels=labels)
+
+        # Convert annotated frame to RGB for display
+        annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+
+        # Display frame
+        stframe.image(annotated_frame, channels="RGB")
