@@ -5,7 +5,6 @@ from collections import defaultdict, deque
 from ultralytics import YOLO
 import supervision as sv
 from tempfile import NamedTemporaryFile
-import time
 import torch
 
 # Fungsi untuk mengubah input string ke array numpy
@@ -33,7 +32,7 @@ class ViewTransformer:
 
 
 # Streamlit UI
-st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Dengan Bounding Area")
+st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Dengan Statistik")
 
 # Upload video
 uploaded_video = st.file_uploader("Upload Video", type=["mp4", "avi", "mov", "mkv"])
@@ -52,7 +51,7 @@ source_coordinates = st.text_input(
 SOURCE = parse_coordinates(source_coordinates)
 TARGET = np.array([[0, 0], [target_width - 1, 0], [target_width - 1, target_height - 1], [0, target_height - 1]])
 
-# Confidence and IoU thresholds
+# Confidence dan IoU Threshold
 confidence_threshold = st.slider("Confidence Threshold", 0.0, 1.0, 0.3, 0.05)
 iou_threshold = st.slider("IoU Threshold", 0.0, 1.0, 0.7, 0.05)
 
@@ -65,6 +64,11 @@ if uploaded_video and SOURCE is not None:
 
     # Load YOLO model
     model = YOLO('models/vehicle-accident.pt').to(device)  # Ganti dengan model Anda
+
+    # Ambil nama class dari model
+    all_classes = model.names.values()
+    vehicle_classes = {"bus", "car", "motorcycle", "truck"}
+    accident_classes = set(all_classes) - vehicle_classes
 
     byte_track = sv.ByteTrack(
         frame_rate=video_info.fps,
@@ -89,15 +93,13 @@ if uploaded_video and SOURCE is not None:
     view_transformer = ViewTransformer(source=SOURCE, target=TARGET)
     coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
 
-    frame_generator = sv.get_video_frames_generator(source_path=tfile.name)
+    vehicle_count = defaultdict(int)
+    accident_count = defaultdict(int)
+    counted_ids = set()  # Set untuk melacak ID yang sudah dihitung
 
     stframe = st.empty()  # Tempat untuk menampilkan frame
-    for frame in frame_generator:
-        # Convert frame to grayscale
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        gray_frame = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)  # Convert back to 3 channels
-
-        result = model(gray_frame)[0]
+    for frame in sv.get_video_frames_generator(source_path=tfile.name):
+        result = model(frame)[0]
         detections = sv.Detections.from_ultralytics(result)
         detections = detections[detections.confidence > confidence_threshold]
         detections = detections[polygon_zone.trigger(detections)]
@@ -107,23 +109,32 @@ if uploaded_video and SOURCE is not None:
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
         points = view_transformer.transform_points(points=points).astype(int)
 
-        for tracker_id, [_, y] in zip(detections.tracker_id, points):
-            coordinates[tracker_id].append(y)
+        for tracker_id, [_, y], class_id in zip(detections.tracker_id, points, detections.class_id):
+            class_name = model.names[class_id]
+            if tracker_id not in counted_ids:
+                if class_name in vehicle_classes:
+                    vehicle_count[class_name] += 1
+                elif class_name in accident_classes:
+                    accident_count[class_name] += 1
+                counted_ids.add(tracker_id)  # Tambahkan ID ke set setelah dihitung
+
+            if class_name in vehicle_classes:
+                coordinates[tracker_id].append(y)
 
         labels = []
-        for tracker_id in detections.tracker_id:
-            if len(coordinates[tracker_id]) < video_info.fps / 2:
-                labels.append(f"#{tracker_id}")
-            else:
+        for tracker_id, class_id in zip(detections.tracker_id, detections.class_id):
+            class_name = model.names[class_id]
+            if class_name in vehicle_classes and len(coordinates[tracker_id]) >= video_info.fps / 2:
                 coordinate_start = coordinates[tracker_id][-1]
                 coordinate_end = coordinates[tracker_id][0]
                 distance = abs(coordinate_start - coordinate_end)
                 time = len(coordinates[tracker_id]) / video_info.fps
-                speed = distance / time * 3.6
+                speed = distance / time * 3.6  # Kecepatan dalam km/h
                 labels.append(f"#{tracker_id} {int(speed)} km/h")
+            else:
+                labels.append(f"#{tracker_id}")
 
         annotated_frame = frame.copy()
-        # Gambar bounding area
         cv2.polylines(
             annotated_frame,
             [SOURCE],
@@ -141,3 +152,12 @@ if uploaded_video and SOURCE is not None:
 
         # Display frame
         stframe.image(annotated_frame, channels="RGB")
+
+    # Tampilkan hasil di sidebar
+    st.sidebar.subheader("Statistik Kendaraan")
+    for vehicle, count in vehicle_count.items():
+        st.sidebar.write(f"{vehicle}: {count} kendaraan")
+
+    st.sidebar.subheader("Statistik Kecelakaan")
+    for accident, count in accident_count.items():
+        st.sidebar.write(f"{accident}: {count} kejadian")
