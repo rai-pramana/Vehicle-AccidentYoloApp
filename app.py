@@ -36,8 +36,54 @@ class ViewTransformer:
 # Streamlit UI
 st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Dengan Statistik")
 
+stframe = st.empty()  # Tempat untuk menampilkan frame
+vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
+vehicle_speed_placeholder = st.empty()  # Placeholder untuk grafik kecepatan kendaraan
+accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaan
+
 # Sidebar inputs
 st.sidebar.header("Pengaturan Input")
+
+# Tombol kontrol
+if 'status' not in st.session_state:
+    st.session_state.status = 'stopped'
+if 'frame_index' not in st.session_state:
+    st.session_state.frame_index = 0
+if 'last_frame' not in st.session_state:
+    st.session_state.last_frame = None
+if 'vehicle_count' not in st.session_state:
+    st.session_state.vehicle_count = defaultdict(int)
+if 'accident_count' not in st.session_state:
+    st.session_state.accident_count = defaultdict(int)
+if 'counted_ids' not in st.session_state:
+    st.session_state.counted_ids = set()
+if 'vehicle_speed_data' not in st.session_state:
+    st.session_state.vehicle_speed_data = []
+if 'detections_data' not in st.session_state:
+    st.session_state.detections_data = []
+
+start_button = st.sidebar.button("Start")
+continue_button = st.sidebar.button("Continue")
+stop_button = st.sidebar.button("Stop")
+reset_button = st.sidebar.button("Reset")
+
+if start_button:
+    st.session_state.status = 'running'
+    st.session_state.frame_index = 0
+    st.session_state.detections_data = []
+elif continue_button:
+    st.session_state.status = 'running'
+elif stop_button:
+    st.session_state.status = 'stopped'
+elif reset_button:
+    st.session_state.status = 'stopped'
+    st.session_state.frame_index = 0
+    st.session_state.vehicle_count = defaultdict(int)
+    st.session_state.accident_count = defaultdict(int)
+    st.session_state.counted_ids = set()
+    st.session_state.last_frame = None
+    st.session_state.vehicle_speed_data = []
+    st.session_state.detections_data = []
 
 # Upload video
 uploaded_video = st.sidebar.file_uploader("Upload Video", type=["mp4", "avi", "mov", "mkv"])
@@ -98,19 +144,14 @@ if uploaded_video and SOURCE is not None:
     view_transformer = ViewTransformer(source=SOURCE, target=TARGET)
     coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
 
-    vehicle_count = defaultdict(int)
-    accident_count = defaultdict(int)
-    counted_ids = set()  # Set untuk melacak ID yang sudah dihitung
-
-    stframe = st.empty()  # Tempat untuk menampilkan frame
-    vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
-    vehicle_speed_placeholder = st.empty()  # Placeholder untuk grafik kecepatan kendaraan
-    accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaan
-
-    vehicle_speed_data = []  # List untuk menyimpan data kecepatan kendaraan
     plot_counter = 0  # Counter untuk key yang unik
 
-    for frame in sv.get_video_frames_generator(source_path=tfile.name):
+    frames = list(sv.get_video_frames_generator(source_path=tfile.name))
+
+    while st.session_state.status == 'running' and st.session_state.frame_index < len(frames):
+        frame = frames[st.session_state.frame_index]
+        st.session_state.frame_index += 1
+
         result = model(frame)[0]
         detections = sv.Detections.from_ultralytics(result)
         detections = detections[detections.confidence > confidence_threshold]
@@ -118,17 +159,20 @@ if uploaded_video and SOURCE is not None:
         detections = detections.with_nms(threshold=iou_threshold)
         detections = byte_track.update_with_detections(detections=detections)
 
+        # Simpan hasil deteksi di st.session_state
+        st.session_state.detections_data.append(detections)
+
         points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
         points = view_transformer.transform_points(points=points).astype(int)
 
         for tracker_id, [_, y], class_id in zip(detections.tracker_id, points, detections.class_id):
             class_name = model.names[class_id]
-            if tracker_id not in counted_ids:
+            if tracker_id not in st.session_state.counted_ids:
                 if class_name in vehicle_classes:
-                    vehicle_count[class_name] += 1
+                    st.session_state.vehicle_count[class_name] += 1
                 elif class_name in accident_classes:
-                    accident_count[class_name] += 1
-                counted_ids.add(tracker_id)  # Tambahkan ID ke set setelah dihitung
+                    st.session_state.accident_count[class_name] += 1
+                st.session_state.counted_ids.add(tracker_id)  # Tambahkan ID ke set setelah dihitung
 
             if class_name in vehicle_classes:
                 coordinates[tracker_id].append(y)
@@ -143,7 +187,7 @@ if uploaded_video and SOURCE is not None:
                 time = len(coordinates[tracker_id]) / video_info.fps
                 speed = distance / time * 3.6  # Kecepatan dalam km/h
                 labels.append(f"#{tracker_id} {int(speed)} km/h")
-                vehicle_speed_data.append({"ID": tracker_id, "Speed": speed, "Class": class_name})
+                st.session_state.vehicle_speed_data.append({"ID": tracker_id, "Speed": speed, "Class": class_name})
             else:
                 labels.append(f"#{tracker_id}")
 
@@ -165,10 +209,11 @@ if uploaded_video and SOURCE is not None:
 
         # Display frame
         stframe.image(annotated_frame, channels="RGB")
+        st.session_state.last_frame = annotated_frame  # Simpan frame terakhir
 
         # Update real-time statistics
-        vehicle_stats_df = pd.DataFrame(list(vehicle_count.items()), columns=["Vehicle", "Count"])
-        accident_stats_df = pd.DataFrame(list(accident_count.items()), columns=["Accident", "Count"])
+        vehicle_stats_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Vehicle", "Count"])
+        accident_stats_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Accident", "Count"])
 
         with vehicle_stats_placeholder.container():
             st.subheader("Statistik Kendaraan")
@@ -176,27 +221,139 @@ if uploaded_video and SOURCE is not None:
             st.plotly_chart(fig_vehicle, use_container_width=True, key=f"vehicle_stats_{plot_counter}")
             plot_counter += 1  # Tingkatkan counter untuk key yang unik
 
-            # Update real-time vehicle speed graph
-            if vehicle_speed_data:
-                df = pd.DataFrame(vehicle_speed_data)
-                
-                # Hitung rata-rata kecepatan per kelas
-                avg_speed_df = df.groupby("Class")["Speed"].mean().reset_index()
-                avg_speed_df.columns = ["Class", "Average Speed (km/h)"]
-                
-                # Buat grafik rata-rata kecepatan
-                fig_speed = px.bar(avg_speed_df, x="Average Speed (km/h)", y="Class", orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas")
-                
-                # Perbarui grafik di placeholder
-                vehicle_speed_placeholder.empty()  # Kosongkan placeholder
-                vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
-                plot_counter += 1  # Tingkatkan counter untuk key yang unik
+        with accident_stats_placeholder.container():
+            st.subheader("Statistik Kecelakaan")
+            fig_accident = px.bar(accident_stats_df, x="Count", y="Accident", orientation='h', title="Jumlah Kecelakaan per Kelas")
+            st.plotly_chart(fig_accident, use_container_width=True, key=f"accident_stats_{plot_counter}")
+            plot_counter += 1  # Tingkatkan counter untuk key yang unik
 
-                # Clear vehicle speed data for the next frame
-                vehicle_speed_data.clear()
+        # Update real-time vehicle speed graph
+        if st.session_state.vehicle_speed_data:
+            df = pd.DataFrame(st.session_state.vehicle_speed_data)
+            
+            # Hitung rata-rata kecepatan per kelas
+            avg_speed_df = df.groupby("Class")["Speed"].mean().reset_index()
+            avg_speed_df.columns = ["Class", "Average Speed"]
+            
+            # Buat grafik rata-rata kecepatan
+            fig_speed = px.bar(avg_speed_df, x="Average Speed", y="Class", orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas")
+            
+            # Perbarui grafik di placeholder
+            vehicle_speed_placeholder.empty()  # Kosongkan placeholder
+            vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
+            plot_counter += 1  # Tingkatkan counter untuk key yang unik
+
+# Tampilkan frame terakhir dan grafik saat status 'stopped'
+if st.session_state.status == 'stopped' and st.session_state.last_frame is not None:
+    stframe.image(st.session_state.last_frame, channels="RGB")
+
+    vehicle_stats_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Vehicle", "Count"])
+    accident_stats_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Accident", "Count"])
+
+    with vehicle_stats_placeholder.container():
+        st.subheader("Statistik Kendaraan")
+        fig_vehicle = px.bar(vehicle_stats_df, x="Count", y="Vehicle", orientation='h', title="Jumlah Kendaraan per Kelas")
+        st.plotly_chart(fig_vehicle, use_container_width=True, key=f"vehicle_stats_{plot_counter}")
+
+    with accident_stats_placeholder.container():
+        st.subheader("Statistik Kecelakaan")
+        fig_accident = px.bar(accident_stats_df, x="Count", y="Accident", orientation='h', title="Jumlah Kecelakaan per Kelas")
+        st.plotly_chart(fig_accident, use_container_width=True, key=f"accident_stats_{plot_counter}")
+
+    if st.session_state.vehicle_speed_data:
+        df = pd.DataFrame(st.session_state.vehicle_speed_data)
+        
+        # Hitung rata-rata kecepatan per kelas
+        avg_speed_df = df.groupby("Class")["Speed"].mean().reset_index()
+        avg_speed_df.columns = ["Class", "Average Speed"]
+        
+        # Buat grafik rata-rata kecepatan
+        fig_speed = px.bar(avg_speed_df, x="Average Speed", y="Class", orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas")
+        
+        # Perbarui grafik di placeholder
+        vehicle_speed_placeholder.empty()  # Kosongkan placeholder
+        vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
+
+# Muat hasil deteksi yang sudah disimpan saat melanjutkan deteksi
+if st.session_state.status == 'running' and st.session_state.frame_index < len(frames):
+    for detections in st.session_state.detections_data[st.session_state.frame_index:]:
+        points = detections.get_anchors_coordinates(anchor=sv.Position.BOTTOM_CENTER)
+        points = view_transformer.transform_points(points=points).astype(int)
+
+        for tracker_id, [_, y], class_id in zip(detections.tracker_id, points, detections.class_id):
+            class_name = model.names[class_id]
+            if tracker_id not in st.session_state.counted_ids:
+                if class_name in vehicle_classes:
+                    st.session_state.vehicle_count[class_name] += 1
+                elif class_name in accident_classes:
+                    st.session_state.accident_count[class_name] += 1
+                st.session_state.counted_ids.add(tracker_id)  # Tambahkan ID ke set setelah dihitung
+
+            if class_name in vehicle_classes:
+                coordinates[tracker_id].append(y)
+
+        labels = []
+        for tracker_id, class_id in zip(detections.tracker_id, detections.class_id):
+            class_name = model.names[class_id]
+            if class_name in vehicle_classes and len(coordinates[tracker_id]) >= video_info.fps / 2:
+                coordinate_start = coordinates[tracker_id][-1]
+                coordinate_end = coordinates[tracker_id][0]
+                distance = abs(coordinate_start - coordinate_end)
+                time = len(coordinates[tracker_id]) / video_info.fps
+                speed = distance / time * 3.6  # Kecepatan dalam km/h
+                labels.append(f"#{tracker_id} {int(speed)} km/h")
+                st.session_state.vehicle_speed_data.append({"ID": tracker_id, "Speed": speed, "Class": class_name})
+            else:
+                labels.append(f"#{tracker_id}")
+
+        annotated_frame = frame.copy()
+        cv2.polylines(
+            annotated_frame,
+            [SOURCE],
+            isClosed=True,
+            color=(0, 255, 0),
+            thickness=thickness,
+        )
+
+        annotated_frame = trace_annotator.annotate(scene=annotated_frame, detections=detections)
+        annotated_frame = box_annotator.annotate(scene=annotated_frame, detections=detections)
+        annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections, labels=labels)
+
+        # Convert annotated frame to RGB for display
+        annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+
+        # Display frame
+        stframe.image(annotated_frame, channels="RGB")
+        st.session_state.last_frame = annotated_frame  # Simpan frame terakhir
+
+        # Update real-time statistics
+        vehicle_stats_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Vehicle", "Count"])
+        accident_stats_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns["Accident", "Count"])
+
+        with vehicle_stats_placeholder.container():
+            st.subheader("Statistik Kendaraan")
+            fig_vehicle = px.bar(vehicle_stats_df, x="Count", y="Vehicle", orientation='h', title="Jumlah Kendaraan per Kelas")
+            st.plotly_chart(fig_vehicle, use_container_width=True, key=f"vehicle_stats_{plot_counter}")
+            plot_counter += 1  # Tingkatkan counter untuk key yang unik
 
         with accident_stats_placeholder.container():
             st.subheader("Statistik Kecelakaan")
             fig_accident = px.bar(accident_stats_df, x="Count", y="Accident", orientation='h', title="Jumlah Kecelakaan per Kelas")
             st.plotly_chart(fig_accident, use_container_width=True, key=f"accident_stats_{plot_counter}")
+            plot_counter += 1  # Tingkatkan counter untuk key yang unik
+
+        # Update real-time vehicle speed graph
+        if st.session_state.vehicle_speed_data:
+            df = pd.DataFrame(st.session_state.vehicle_speed_data)
+            
+            # Hitung rata-rata kecepatan per kelas
+            avg_speed_df = df.groupby("Class")["Speed"].mean().reset_index()
+            avg_speed_df.columns = ["Class", "Average Speed"]
+            
+            # Buat grafik rata-rata kecepatan
+            fig_speed = px.bar(avg_speed_df, x="Average Speed", y="Class", orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas")
+            
+            # Perbarui grafik di placeholder
+            vehicle_speed_placeholder.empty()  # Kosongkan placeholder
+            vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
             plot_counter += 1  # Tingkatkan counter untuk key yang unik
