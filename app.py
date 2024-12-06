@@ -3,13 +3,16 @@ from ultralytics import YOLO
 import cv2
 import numpy as np
 import tempfile
+import torch
 
 def get_text_color(bg_color):
     luminance = (0.299 * bg_color[2] + 0.587 * bg_color[1] + 0.114 * bg_color[0])
     return (0, 0, 0) if luminance > 128 else (255, 255, 255)
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 # Load YOLO model
-model = YOLO('bestyolov11l(10es).pt')  # Ganti dengan model Anda
+model = YOLO('models/vehicle-accident.pt').to(device)  # Ganti dengan model Anda
 
 class_names = model.names
 class_colors = {
@@ -86,7 +89,7 @@ if uploaded_file:
         fps = int(cap.get(cv2.CAP_PROP_FPS))
 
         # Buat VideoWriter untuk menyimpan video hasil
-        out = cv2.VideoWriter('output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+        out = cv2.VideoWriter('outputTest/output.mp4', cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
 
         stframe = st.empty()
         
@@ -137,5 +140,5 @@ if uploaded_file:
         out.release()
 
         # Tampilkan video hasil di Streamlit
-        with open('output.mp4', "rb") as file:
-            st.download_button(label="Download Video", data=file, file_name="output_video.mp4", mime="video/mp4")
+        with open('outputTest/output.mp4', "rb") as file:
+            st.download_button(label="Download Video", data=file, file_name="output.mp4", mime="video/mp4")
