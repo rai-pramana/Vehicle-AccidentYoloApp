@@ -186,7 +186,7 @@ if uploaded_video and SOURCE is not None:
             avg_speed_df.columns = ["Class", "Average Speed"]
             
             # Buat grafik rata-rata kecepatan
-            fig = px.bar(avg_speed_df, x="Class", y="Average Speed", title="Rata-rata Kecepatan Kendaraan per Kelas")
+            fig = px.bar(avg_speed_df, x="Average Speed", y="Class", orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas")
             
             # Perbarui grafik di placeholder
             vehicle_speed_placeholder.empty()  # Kosongkan placeholder
