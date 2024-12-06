@@ -34,15 +34,18 @@ class ViewTransformer:
 # Streamlit UI
 st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Dengan Statistik")
 
+# Sidebar inputs
+st.sidebar.header("Pengaturan Input")
+
 # Upload video
-uploaded_video = st.file_uploader("Upload Video", type=["mp4", "avi", "mov", "mkv"])
+uploaded_video = st.sidebar.file_uploader("Upload Video", type=["mp4", "avi", "mov", "mkv"])
 
 # Input untuk Target Width dan Height
-target_width = st.number_input("Target Width (meter)", min_value=1.0, max_value=100.0, value=13.56, step=0.01)
-target_height = st.number_input("Target Height (meter)", min_value=1.0, max_value=500.0, value=20.95, step=0.01)
+target_width = st.sidebar.number_input("Target Width (meter)", min_value=1.0, max_value=100.0, value=13.56, step=0.01)
+target_height = st.sidebar.number_input("Target Height (meter)", min_value=1.0, max_value=500.0, value=20.95, step=0.01)
 
 # Input untuk Source Coordinates
-source_coordinates = st.text_input(
+source_coordinates = st.sidebar.text_input(
     "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
     value="619,394;1032,423;968,717;240,666"
 )
@@ -52,8 +55,8 @@ SOURCE = parse_coordinates(source_coordinates)
 TARGET = np.array([[0, 0], [target_width - 1, 0], [target_width - 1, target_height - 1], [0, target_height - 1]])
 
 # Confidence dan IoU Threshold
-confidence_threshold = st.slider("Confidence Threshold", 0.0, 1.0, 0.3, 0.05)
-iou_threshold = st.slider("IoU Threshold", 0.0, 1.0, 0.7, 0.05)
+confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.0, 1.0, 0.3, 0.05)
+iou_threshold = st.sidebar.slider("IoU Threshold", 0.0, 1.0, 0.7, 0.05)
 
 if uploaded_video and SOURCE is not None:
     tfile = NamedTemporaryFile(delete=False)
@@ -153,11 +156,11 @@ if uploaded_video and SOURCE is not None:
         # Display frame
         stframe.image(annotated_frame, channels="RGB")
 
-    # Tampilkan hasil di sidebar
-    st.sidebar.subheader("Statistik Kendaraan")
+    # Tampilkan hasil di halaman utama
+    st.subheader("Statistik Kendaraan")
     for vehicle, count in vehicle_count.items():
-        st.sidebar.write(f"{vehicle}: {count} kendaraan")
+        st.write(f"{vehicle}: {count} kendaraan")
 
-    st.sidebar.subheader("Statistik Kecelakaan")
+    st.subheader("Statistik Kecelakaan")
     for accident, count in accident_count.items():
-        st.sidebar.write(f"{accident}: {count} kejadian")
+        st.write(f"{accident}: {count} kejadian")
