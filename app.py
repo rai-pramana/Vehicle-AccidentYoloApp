@@ -167,15 +167,20 @@ if uploaded_video and SOURCE is not None:
         stframe.image(annotated_frame, channels="RGB")
 
         # Update real-time statistics
+        vehicle_stats_df = pd.DataFrame(list(vehicle_count.items()), columns=["Vehicle", "Count"])
+        accident_stats_df = pd.DataFrame(list(accident_count.items()), columns=["Accident", "Count"])
+
         with vehicle_stats_placeholder.container():
             st.subheader("Statistik Kendaraan")
-            for vehicle, count in vehicle_count.items():
-                st.write(f"{vehicle}: {count} kendaraan")
+            fig_vehicle = px.bar(vehicle_stats_df, x="Count", y="Vehicle", orientation='h', title="Jumlah Kendaraan per Kelas")
+            st.plotly_chart(fig_vehicle, use_container_width=True, key=f"vehicle_stats_{plot_counter}")
+            plot_counter += 1  # Tingkatkan counter untuk key yang unik
 
         with accident_stats_placeholder.container():
             st.subheader("Statistik Kecelakaan")
-            for accident, count in accident_count.items():
-                st.write(f"{accident}: {count} kejadian")
+            fig_accident = px.bar(accident_stats_df, x="Count", y="Accident", orientation='h', title="Jumlah Kecelakaan per Kelas")
+            st.plotly_chart(fig_accident, use_container_width=True, key=f"accident_stats_{plot_counter}")
+            plot_counter += 1  # Tingkatkan counter untuk key yang unik
 
         # Update real-time vehicle speed graph
         if vehicle_speed_data:
@@ -186,11 +191,11 @@ if uploaded_video and SOURCE is not None:
             avg_speed_df.columns = ["Class", "Average Speed"]
             
             # Buat grafik rata-rata kecepatan
-            fig = px.bar(avg_speed_df, x="Average Speed", y="Class", orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas")
+            fig_speed = px.bar(avg_speed_df, x="Average Speed", y="Class", orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas")
             
             # Perbarui grafik di placeholder
             vehicle_speed_placeholder.empty()  # Kosongkan placeholder
-            vehicle_speed_placeholder.plotly_chart(fig, key=f"vehicle_speed_{plot_counter}")
+            vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
             plot_counter += 1  # Tingkatkan counter untuk key yang unik
 
             # Clear vehicle speed data for the next frame
