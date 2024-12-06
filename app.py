@@ -6,6 +6,8 @@ from ultralytics import YOLO
 import supervision as sv
 from tempfile import NamedTemporaryFile
 import torch
+import plotly.express as px
+import pandas as pd
 
 # Fungsi untuk mengubah input string ke array numpy
 def parse_coordinates(coord_string):
@@ -103,6 +105,10 @@ if uploaded_video and SOURCE is not None:
     stframe = st.empty()  # Tempat untuk menampilkan frame
     vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
     accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaan
+    vehicle_speed_placeholder = st.empty()  # Placeholder untuk grafik kecepatan kendaraan
+
+    vehicle_speed_data = []  # List untuk menyimpan data kecepatan kendaraan
+    plot_counter = 0  # Counter untuk key yang unik
 
     for frame in sv.get_video_frames_generator(source_path=tfile.name):
         result = model(frame)[0]
@@ -137,6 +143,7 @@ if uploaded_video and SOURCE is not None:
                 time = len(coordinates[tracker_id]) / video_info.fps
                 speed = distance / time * 3.6  # Kecepatan dalam km/h
                 labels.append(f"#{tracker_id} {int(speed)} km/h")
+                vehicle_speed_data.append({"ID": tracker_id, "Speed": speed, "Class": class_name})
             else:
                 labels.append(f"#{tracker_id}")
 
@@ -158,7 +165,7 @@ if uploaded_video and SOURCE is not None:
 
         # Display frame
         stframe.image(annotated_frame, channels="RGB")
-    
+
         # Update real-time statistics
         with vehicle_stats_placeholder.container():
             st.subheader("Statistik Kendaraan")
@@ -169,3 +176,22 @@ if uploaded_video and SOURCE is not None:
             st.subheader("Statistik Kecelakaan")
             for accident, count in accident_count.items():
                 st.write(f"{accident}: {count} kejadian")
+
+        # Update real-time vehicle speed graph
+        if vehicle_speed_data:
+            df = pd.DataFrame(vehicle_speed_data)
+            
+            # Hitung rata-rata kecepatan per kelas
+            avg_speed_df = df.groupby("Class")["Speed"].mean().reset_index()
+            avg_speed_df.columns = ["Class", "Average Speed"]
+            
+            # Buat grafik rata-rata kecepatan
+            fig = px.bar(avg_speed_df, x="Class", y="Average Speed", title="Rata-rata Kecepatan Kendaraan per Kelas")
+            
+            # Perbarui grafik di placeholder
+            vehicle_speed_placeholder.empty()  # Kosongkan placeholder
+            vehicle_speed_placeholder.plotly_chart(fig, key=f"vehicle_speed_{plot_counter}")
+            plot_counter += 1  # Tingkatkan counter untuk key yang unik
+
+            # Clear vehicle speed data for the next frame
+            vehicle_speed_data.clear()
