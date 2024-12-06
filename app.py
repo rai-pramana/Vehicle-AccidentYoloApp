@@ -101,6 +101,9 @@ if uploaded_video and SOURCE is not None:
     counted_ids = set()  # Set untuk melacak ID yang sudah dihitung
 
     stframe = st.empty()  # Tempat untuk menampilkan frame
+    vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
+    accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaan
+
     for frame in sv.get_video_frames_generator(source_path=tfile.name):
         result = model(frame)[0]
         detections = sv.Detections.from_ultralytics(result)
@@ -155,12 +158,14 @@ if uploaded_video and SOURCE is not None:
 
         # Display frame
         stframe.image(annotated_frame, channels="RGB")
+    
+        # Update real-time statistics
+        with vehicle_stats_placeholder.container():
+            st.subheader("Statistik Kendaraan")
+            for vehicle, count in vehicle_count.items():
+                st.write(f"{vehicle}: {count} kendaraan")
 
-    # Tampilkan hasil di halaman utama
-    st.subheader("Statistik Kendaraan")
-    for vehicle, count in vehicle_count.items():
-        st.write(f"{vehicle}: {count} kendaraan")
-
-    st.subheader("Statistik Kecelakaan")
-    for accident, count in accident_count.items():
-        st.write(f"{accident}: {count} kejadian")
+        with accident_stats_placeholder.container():
+            st.subheader("Statistik Kecelakaan")
+            for accident, count in accident_count.items():
+                st.write(f"{accident}: {count} kejadian")
