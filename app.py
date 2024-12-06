@@ -9,6 +9,7 @@ import torch
 import plotly.express as px
 import pandas as pd
 import os
+from datetime import datetime, timedelta
 
 # Fungsi untuk mengubah input string ke array numpy
 def parse_coordinates(coord_string):
@@ -37,6 +38,10 @@ class ViewTransformer:
 # Streamlit UI
 st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Dengan Statistik")
 
+# Dapatkan daftar model yang tersedia di folder 'models/'
+model_files = [f for f in os.listdir('models') if f.endswith('.pt')]
+selected_model = st.sidebar.selectbox("Pilih Model", model_files)
+
 stframe = st.empty()  # Tempat untuk menampilkan frame
 vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
 vehicle_speed_placeholder = st.empty()  # Placeholder untuk grafik kecepatan kendaraan
@@ -44,10 +49,6 @@ accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaa
 
 # Sidebar inputs
 st.sidebar.header("Pengaturan Input")
-
-# Dapatkan daftar model yang tersedia di folder 'models/'
-model_files = [f for f in os.listdir('models') if f.endswith('.pt')]
-selected_model = st.sidebar.selectbox("Pilih Model", model_files)
 
 # Tombol kontrol
 if 'status' not in st.session_state:
@@ -106,7 +107,17 @@ TARGET = np.array([[0, 0], [target_width - 1, 0], [target_width - 1, target_heig
 confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.0, 1.0, 0.3, 0.05)
 iou_threshold = st.sidebar.slider("IoU Threshold", 0.0, 1.0, 0.7, 0.05)
 
-if uploaded_video and SOURCE is not None:
+# Input untuk waktu mulai video
+start_time_str = st.sidebar.text_input("Waktu Mulai Video (dd-mm-yyyy hh:mm:ss)", value="01-01-2023 00:00:00")
+
+# Parse waktu mulai video
+try:
+    start_time = datetime.strptime(start_time_str, "%d-%m-%Y %H:%M:%S")
+except ValueError:
+    st.error("Format waktu tidak valid. Gunakan format: dd-mm-yyyy hh:mm:ss")
+    start_time = None
+
+if uploaded_video and SOURCE is not None and start_time is not None:
     tfile = NamedTemporaryFile(delete=False)
     tfile.write(uploaded_video.read())
 
@@ -219,6 +230,13 @@ if uploaded_video and SOURCE is not None:
         (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
         cv2.rectangle(annotated_frame, (10, y_offset - text_height - baseline), (10 + text_width, y_offset + baseline), (0, 0, 0), cv2.FILLED)
         cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+
+        # Tambahkan anotasi teks untuk timestamp
+        current_time = start_time + timedelta(seconds=st.session_state.frame_index / video_info.fps)
+        timestamp_text = current_time.strftime("%d-%m-%Y %H:%M:%S")
+        (text_width, text_height), baseline = cv2.getTextSize(timestamp_text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+        cv2.rectangle(annotated_frame, (10, y_offset + 40 - text_height - baseline), (10 + text_width, y_offset + 40 + baseline), (0, 0, 0), cv2.FILLED)
+        cv2.putText(annotated_frame, timestamp_text, (10, y_offset + 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
         # Convert annotated frame to RGB for display
         annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
