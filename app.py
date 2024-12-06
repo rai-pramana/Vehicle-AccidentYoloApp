@@ -45,6 +45,10 @@ accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaa
 # Sidebar inputs
 st.sidebar.header("Pengaturan Input")
 
+# Dapatkan daftar model yang tersedia di folder 'models/'
+model_files = [f for f in os.listdir('models') if f.endswith('.pt')]
+selected_model = st.sidebar.selectbox("Pilih Model", model_files)
+
 # Tombol kontrol
 if 'status' not in st.session_state:
     st.session_state.status = 'stopped'
@@ -101,10 +105,6 @@ TARGET = np.array([[0, 0], [target_width - 1, 0], [target_width - 1, target_heig
 # Confidence dan IoU Threshold
 confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.0, 1.0, 0.3, 0.05)
 iou_threshold = st.sidebar.slider("IoU Threshold", 0.0, 1.0, 0.7, 0.05)
-
-# Dapatkan daftar model yang tersedia di folder 'models/'
-model_files = [f for f in os.listdir('models') if f.endswith('.pt')]
-selected_model = st.sidebar.selectbox("Pilih Model", model_files)
 
 if uploaded_video and SOURCE is not None:
     tfile = NamedTemporaryFile(delete=False)
