@@ -10,6 +10,7 @@ import plotly.express as px
 import pandas as pd
 import os
 from datetime import datetime, timedelta
+from io import BytesIO
 
 # Fungsi untuk mengubah input string ke array numpy
 def parse_coordinates(coord_string):
@@ -198,7 +199,8 @@ if uploaded_video and SOURCE is not None and start_time is not None:
                 time = len(coordinates[tracker_id]) / video_info.fps
                 speed = distance / time * 3.6  # Kecepatan dalam km/h
                 labels.append(f"#{tracker_id} {int(speed)} km/h")
-                st.session_state.vehicle_speed_data.append({"ID": tracker_id, "Speed": speed, "Class": class_name})
+                timestamp = start_time + timedelta(seconds=st.session_state.frame_index / video_info.fps)
+                st.session_state.vehicle_speed_data.append({"Detik": st.session_state.frame_index / video_info.fps, "Timestamp": timestamp, "ID": tracker_id, "Class": class_name, "Speed": speed})
             else:
                 labels.append(f"#{tracker_id}")
 
@@ -315,3 +317,34 @@ if st.session_state.status == 'stopped' and st.session_state.last_frame is not N
         # Perbarui grafik di placeholder
         vehicle_speed_placeholder.empty()  # Kosongkan placeholder
         vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
+
+# Buat DataFrame untuk kecepatan setiap ID terdeteksi
+speed_df = pd.DataFrame(st.session_state.vehicle_speed_data)
+
+# Ambil semua nama kelas dari model
+all_classes = list(model.names.values())
+
+# Buat DataFrame untuk jumlah kendaraan dan kecelakaan
+vehicle_count_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Class", "Count"])
+accident_count_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Class", "Count"])
+
+# Gabungkan semua kelas kendaraan dan kecelakaan dengan nilai 0 untuk yang tidak terdeteksi
+vehicle_count_df = vehicle_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
+accident_count_df = accident_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
+
+# Gabungkan DataFrame kendaraan dan kecelakaan
+count_df = pd.concat([vehicle_count_df, accident_count_df], ignore_index=True)
+
+# Tulis kedua DataFrame ke dalam satu file Excel dengan dua sheet
+output = BytesIO()
+with pd.ExcelWriter(output, engine='openpyxl') as writer:
+    speed_df.to_excel(writer, index=False, sheet_name='Kecepatan')
+    count_df.to_excel(writer, index=False, sheet_name='Jumlah Kelas')
+
+# Sediakan tombol untuk mengunduh file Excel
+st.sidebar.download_button(
+    label="Unduh Hasil Deteksi",
+    data=output.getvalue(),
+    file_name="hasil_deteksi.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
