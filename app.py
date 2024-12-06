@@ -182,10 +182,10 @@ if uploaded_video and SOURCE is not None:
                 
                 # Hitung rata-rata kecepatan per kelas
                 avg_speed_df = df.groupby("Class")["Speed"].mean().reset_index()
-                avg_speed_df.columns = ["Class", "Average Speed"]
+                avg_speed_df.columns = ["Class", "Average Speed (km/h)"]
                 
                 # Buat grafik rata-rata kecepatan
-                fig_speed = px.bar(avg_speed_df, x="Average Speed", y="Class", orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas")
+                fig_speed = px.bar(avg_speed_df, x="Average Speed (km/h)", y="Class", orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas")
                 
                 # Perbarui grafik di placeholder
                 vehicle_speed_placeholder.empty()  # Kosongkan placeholder
