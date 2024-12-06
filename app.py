@@ -104,8 +104,8 @@ if uploaded_video and SOURCE is not None:
 
     stframe = st.empty()  # Tempat untuk menampilkan frame
     vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
-    accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaan
     vehicle_speed_placeholder = st.empty()  # Placeholder untuk grafik kecepatan kendaraan
+    accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaan
 
     vehicle_speed_data = []  # List untuk menyimpan data kecepatan kendaraan
     plot_counter = 0  # Counter untuk key yang unik
@@ -176,27 +176,27 @@ if uploaded_video and SOURCE is not None:
             st.plotly_chart(fig_vehicle, use_container_width=True, key=f"vehicle_stats_{plot_counter}")
             plot_counter += 1  # Tingkatkan counter untuk key yang unik
 
+            # Update real-time vehicle speed graph
+            if vehicle_speed_data:
+                df = pd.DataFrame(vehicle_speed_data)
+                
+                # Hitung rata-rata kecepatan per kelas
+                avg_speed_df = df.groupby("Class")["Speed"].mean().reset_index()
+                avg_speed_df.columns = ["Class", "Average Speed"]
+                
+                # Buat grafik rata-rata kecepatan
+                fig_speed = px.bar(avg_speed_df, x="Average Speed", y="Class", orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas")
+                
+                # Perbarui grafik di placeholder
+                vehicle_speed_placeholder.empty()  # Kosongkan placeholder
+                vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
+                plot_counter += 1  # Tingkatkan counter untuk key yang unik
+
+                # Clear vehicle speed data for the next frame
+                vehicle_speed_data.clear()
+
         with accident_stats_placeholder.container():
             st.subheader("Statistik Kecelakaan")
             fig_accident = px.bar(accident_stats_df, x="Count", y="Accident", orientation='h', title="Jumlah Kecelakaan per Kelas")
             st.plotly_chart(fig_accident, use_container_width=True, key=f"accident_stats_{plot_counter}")
             plot_counter += 1  # Tingkatkan counter untuk key yang unik
-
-        # Update real-time vehicle speed graph
-        if vehicle_speed_data:
-            df = pd.DataFrame(vehicle_speed_data)
-            
-            # Hitung rata-rata kecepatan per kelas
-            avg_speed_df = df.groupby("Class")["Speed"].mean().reset_index()
-            avg_speed_df.columns = ["Class", "Average Speed"]
-            
-            # Buat grafik rata-rata kecepatan
-            fig_speed = px.bar(avg_speed_df, x="Average Speed", y="Class", orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas")
-            
-            # Perbarui grafik di placeholder
-            vehicle_speed_placeholder.empty()  # Kosongkan placeholder
-            vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
-            plot_counter += 1  # Tingkatkan counter untuk key yang unik
-
-            # Clear vehicle speed data for the next frame
-            vehicle_speed_data.clear()
