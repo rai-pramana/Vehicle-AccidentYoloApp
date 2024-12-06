@@ -8,6 +8,7 @@ from tempfile import NamedTemporaryFile
 import torch
 import plotly.express as px
 import pandas as pd
+import os
 
 # Fungsi untuk mengubah input string ke array numpy
 def parse_coordinates(coord_string):
@@ -101,6 +102,10 @@ TARGET = np.array([[0, 0], [target_width - 1, 0], [target_width - 1, target_heig
 confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.0, 1.0, 0.3, 0.05)
 iou_threshold = st.sidebar.slider("IoU Threshold", 0.0, 1.0, 0.7, 0.05)
 
+# Dapatkan daftar model yang tersedia di folder 'models/'
+model_files = [f for f in os.listdir('models') if f.endswith('.pt')]
+selected_model = st.sidebar.selectbox("Pilih Model", model_files)
+
 if uploaded_video and SOURCE is not None:
     tfile = NamedTemporaryFile(delete=False)
     tfile.write(uploaded_video.read())
@@ -109,7 +114,7 @@ if uploaded_video and SOURCE is not None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load YOLO model
-    model = YOLO('models/vehicle-accident.pt').to(device)  # Ganti dengan model Anda
+    model = YOLO(f'models/{selected_model}').to(device)  # Ganti dengan model yang dipilih
 
     # Ambil nama class dari model
     all_classes = model.names.values()
