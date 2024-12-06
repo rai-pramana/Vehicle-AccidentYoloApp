@@ -213,7 +213,7 @@ if uploaded_video and SOURCE is not None:
 
         # Update real-time statistics
         vehicle_stats_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Vehicle", "Count"])
-        accident_stats_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Accident", "Count"])
+        accident_stats_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns["Accident", "Count"])
 
         with vehicle_stats_placeholder.container():
             st.subheader("Statistik Kendaraan")
