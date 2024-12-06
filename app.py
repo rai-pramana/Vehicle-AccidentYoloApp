@@ -199,6 +199,22 @@ if uploaded_video and SOURCE is not None:
         annotated_frame = box_annotator.annotate(scene=annotated_frame, detections=detections)
         annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections, labels=labels)
 
+        # Tambahkan anotasi teks untuk jumlah kendaraan dan kecelakaan
+        y_offset = 40
+        for vehicle_class in vehicle_classes:
+            count = st.session_state.vehicle_count[vehicle_class]
+            text = f"{vehicle_class.capitalize()}: {count}"
+            (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+            cv2.rectangle(annotated_frame, (10, y_offset - text_height - baseline), (10 + text_width, y_offset + baseline), (0, 0, 0), cv2.FILLED)
+            cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+            y_offset += 40
+
+        total_accidents = sum(st.session_state.accident_count.values())
+        text = f"Accidents: {total_accidents}"
+        (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+        cv2.rectangle(annotated_frame, (10, y_offset - text_height - baseline), (10 + text_width, y_offset + baseline), (0, 0, 0), cv2.FILLED)
+        cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+
         # Convert annotated frame to RGB for display
         annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
 
@@ -209,6 +225,10 @@ if uploaded_video and SOURCE is not None:
         # Update real-time statistics
         vehicle_stats_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Vehicle", "Count"])
         accident_stats_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Accident", "Count"])
+
+        # Filter DataFrame untuk menghapus baris dengan jumlah 0
+        vehicle_stats_df = vehicle_stats_df[vehicle_stats_df["Count"] > 0]
+        accident_stats_df = accident_stats_df[accident_stats_df["Count"] > 0]
 
         with vehicle_stats_placeholder.container():
             st.subheader("Statistik Kendaraan")
@@ -244,6 +264,10 @@ if st.session_state.status == 'stopped' and st.session_state.last_frame is not N
 
     vehicle_stats_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Vehicle", "Count"])
     accident_stats_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Accident", "Count"])
+
+    # Filter DataFrame untuk menghapus baris dengan jumlah 0
+    vehicle_stats_df = vehicle_stats_df[vehicle_stats_df["Count"] > 0]
+    accident_stats_df = accident_stats_df[accident_stats_df["Count"] > 0]
 
     with vehicle_stats_placeholder.container():
         st.subheader("Statistik Kendaraan")
