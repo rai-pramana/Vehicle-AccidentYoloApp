@@ -38,6 +38,11 @@ def main():
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
+    # Dapatkan FPS dari webcam
+    FPS = camera.get(cv2.CAP_PROP_FPS)
+    if FPS == 0:
+        FPS = 30  # Default FPS jika tidak dapat diperoleh dari webcam
+
     stframe = st.empty()  # Tempat untuk menampilkan frame
     vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
     vehicle_speed_placeholder = st.empty()  # Placeholder untuk grafik kecepatan kendaraan
@@ -71,6 +76,13 @@ def main():
         st.session_state.status = 'paused'
     if st.sidebar.button("Stop"):
         st.session_state.status = 'stopped'
+        st.session_state.frame_index = 0
+        st.session_state.vehicle_count = defaultdict(int)
+        st.session_state.accident_count = defaultdict(int)
+        st.session_state.counted_ids = set()
+        st.session_state.last_frame = None
+        st.session_state.vehicle_speed_data = []
+        st.session_state.detections_data = []
 
     # Input untuk Target Width dan Height
     target_width = st.sidebar.number_input("Target Width (meter)", min_value=1.0, max_value=100.0, value=13.56, step=0.01)
@@ -84,7 +96,7 @@ def main():
 
     # Tentukan koordinat berdasarkan lokasi yang dipilih
     if location == "Simpang Pidada":
-        source_coordinates = "800,591;1548,634;1452,1075;200,999"
+        source_coordinates = "580,394;1032,423;968,717;200,666"
     elif location == "Custom":
         source_coordinates = st.sidebar.text_input(
             "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
@@ -129,8 +141,6 @@ def main():
     all_classes = model.names.values()
     vehicle_classes = {"bus", "car", "motorcycle", "truck"}
     accident_classes = set(all_classes) - vehicle_classes
-
-    FPS=30
 
     byte_track = sv.ByteTrack(
         frame_rate=FPS, 
@@ -194,7 +204,7 @@ def main():
         labels = []
         for tracker_id, class_id in zip(detections.tracker_id, detections.class_id):
             class_name = model.names[class_id]
-            if class_name in vehicle_classes and len(coordinates[tracker_id]) >= 30 / 2:
+            if class_name in vehicle_classes and len(coordinates[tracker_id]) >= FPS / (FPS / 2):
                 coordinate_start = coordinates[tracker_id][-1]
                 coordinate_end = coordinates[tracker_id][0]
                 distance = abs(coordinate_start - coordinate_end)
@@ -293,61 +303,52 @@ def main():
     st.session_state.status = 'stopped'
 
     # Save the video and Excel files and provide a download button for the ZIP file
-    if st.session_state.status == 'stopped':        
-        # # Menentukan jalur absolut dari direktori saat ini
-        # video_file_path = os.path.join(current_dir, '..', 'outputTest', 'output_video.mp4')
+    if annotated_frames and st.session_state.status == 'stopped':        
+        # Menentukan jalur absolut dari direktori saat ini
+        video_file_path = os.path.join(current_dir, '..', 'outputTest', 'output_video.mp4')
 
-        # save_video(annotated_frames, video_file_path, FPS)
+        save_video(annotated_frames, video_file_path, FPS)
 
-        # # Buat DataFrame untuk kecepatan setiap ID terdeteksi
-        # speed_df = pd.DataFrame(st.session_state.vehicle_speed_data)
+        # Buat DataFrame untuk kecepatan setiap ID terdeteksi
+        speed_df = pd.DataFrame(st.session_state.vehicle_speed_data)
 
-        # # Ambil semua nama kelas dari model
-        # all_classes = list(model.names.values())
+        # Ambil semua nama kelas dari model
+        all_classes = list(model.names.values())
 
-        # # Buat DataFrame untuk jumlah kendaraan dan kecelakaan
-        # vehicle_count_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Class", "Count"])
-        # accident_count_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Class", "Count"])
+        # Buat DataFrame untuk jumlah kendaraan dan kecelakaan
+        vehicle_count_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Class", "Count"])
+        accident_count_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Class", "Count"])
 
-        # # Gabungkan semua kelas kendaraan dan kecelakaan dengan nilai 0 untuk yang tidak terdeteksi
-        # vehicle_count_df = vehicle_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
-        # accident_count_df = accident_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
+        # Gabungkan semua kelas kendaraan dan kecelakaan dengan nilai 0 untuk yang tidak terdeteksi
+        vehicle_count_df = vehicle_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
+        accident_count_df = accident_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
 
-        # # Gabungkan DataFrame kendaraan dan kecelakaan
-        # count_df = pd.concat([vehicle_count_df, accident_count_df], ignore_index=True)
+        # Gabungkan DataFrame kendaraan dan kecelakaan
+        count_df = pd.concat([vehicle_count_df, accident_count_df], ignore_index=True)
 
-        # # Tulis kedua DataFrame ke dalam satu file Excel dengan dua sheet
-        # output = BytesIO()
-        # with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        #     speed_df.to_excel(writer, index=False, sheet_name='Kecepatan')
-        #     count_df.to_excel(writer, index=False, sheet_name='Jumlah Kelas')
-        # excel_data = output.getvalue()
+        # Tulis kedua DataFrame ke dalam satu file Excel dengan dua sheet
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            speed_df.to_excel(writer, index=False, sheet_name='Kecepatan')
+            count_df.to_excel(writer, index=False, sheet_name='Jumlah Kelas')
+        excel_data = output.getvalue()
 
-        # # Create a ZIP file containing both the video and Excel files
-        # zip_buffer = BytesIO()
-        # with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-        #     zip_file.write(video_file_path, os.path.basename(video_file_path))
-        #     zip_file.writestr('hasil_deteksi.xlsx', excel_data)
+        # Create a ZIP file containing both the video and Excel files
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+            zip_file.write(video_file_path, os.path.basename(video_file_path))
+            zip_file.writestr('hasil_deteksi.xlsx', excel_data)
 
-        # # Provide a download button for the ZIP file
-        # st.sidebar.download_button(
-        #     label="Download Hasil Deteksi",
-        #     data=zip_buffer.getvalue(),
-        #     file_name='output_files.zip',
-        #     mime='application/zip'
-        # )
+        # Provide a download button for the ZIP file
+        st.sidebar.download_button(
+            label="Download Hasil Deteksi",
+            data=zip_buffer.getvalue(),
+            file_name='output_files.zip',
+            mime='application/zip'
+        )
 
-        # # Delete the video file after download
-        # os.remove(video_file_path)
-
-        st.session_state.status = 'running'
-        st.session_state.frame_index = 0
-        st.session_state.vehicle_count = defaultdict(int)
-        st.session_state.accident_count = defaultdict(int)
-        st.session_state.counted_ids = set()
-        st.session_state.last_frame = None
-        st.session_state.vehicle_speed_data = []
-        st.session_state.detections_data = []
+        # Delete the video file after download
+        os.remove(video_file_path)
     
     # Tampilkan frame terakhir dan grafik saat status 'paused'
     if st.session_state.status == 'paused' and st.session_state.last_frame is not None:
