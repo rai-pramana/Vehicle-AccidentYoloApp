@@ -76,7 +76,7 @@ def main():
 
         start_reset_button = st.sidebar.button("Start/Reset")
         continue_button = st.sidebar.button("Continue")
-        stop_button = st.sidebar.button("Stop")
+        pause_button = st.sidebar.button("Pause")
 
         if start_reset_button:
             st.session_state.status = 'running'
@@ -89,7 +89,7 @@ def main():
             st.session_state.detections_data = []
         elif continue_button:
             st.session_state.status = 'running'
-        elif stop_button:
+        elif pause_button:
             st.session_state.status = 'stopped'
 
         # Input untuk Target Width dan Height
@@ -313,7 +313,7 @@ def main():
                     plot_counter += 1  # Tingkatkan counter untuk key yang unik
             
             st.session_state.status == 'stopped'
-            
+
             # Save the video and Excel files and provide a download button for the ZIP file
             if annotated_frames:
                 # Menentukan jalur absolut dari direktori saat ini
