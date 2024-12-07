@@ -325,7 +325,7 @@ if uploaded_video and SOURCE is not None and start_time is not None:
     
     # Save the video and Excel files and provide a download button for the ZIP file
     if annotated_frames:
-        video_file_path = 'outputTest/output_video.mp4'
+        video_file_path = '../outputTest/output_video.mp4'
         save_video(annotated_frames, video_file_path, video_info.fps)
 
         # Buat DataFrame untuk kecepatan setiap ID terdeteksi
