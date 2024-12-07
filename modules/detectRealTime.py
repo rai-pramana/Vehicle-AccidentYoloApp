@@ -68,7 +68,9 @@ def main():
         st.session_state.vehicle_speed_data = []
     if 'detections_data' not in st.session_state:
         st.session_state.detections_data = []
-
+    if 'annotated_frames' not in st.session_state:
+        st.session_state.annotated_frames = []  
+    
     # Tombol kontrol
     if st.sidebar.button("Start"):
         st.session_state.status = 'running'
@@ -76,13 +78,6 @@ def main():
         st.session_state.status = 'paused'
     if st.sidebar.button("Stop"):
         st.session_state.status = 'stopped'
-        st.session_state.frame_index = 0
-        st.session_state.vehicle_count = defaultdict(int)
-        st.session_state.accident_count = defaultdict(int)
-        st.session_state.counted_ids = set()
-        st.session_state.last_frame = None
-        st.session_state.vehicle_speed_data = []
-        st.session_state.detections_data = []
 
     # Input untuk Target Width dan Height
     target_width = st.sidebar.number_input("Target Width (meter)", min_value=1.0, max_value=100.0, value=13.56, step=0.01)
@@ -167,8 +162,6 @@ def main():
     coordinates = defaultdict(lambda: deque(maxlen=30))
 
     plot_counter = 0  # Counter untuk key yang unik
-
-    annotated_frames = []  # List to store annotated frames
 
     while st.session_state.status == 'running':
         ret, frame = camera.read()
@@ -255,7 +248,7 @@ def main():
 
         # Convert annotated frame to RGB for display
         annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
-        annotated_frames.append(annotated_frame)  # Add frame to list
+        st.session_state.annotated_frames.append(annotated_frame)  # Add frame to list
 
         # Display frame
         stframe.image(annotated_frame, channels="RGB")
@@ -303,11 +296,11 @@ def main():
     st.session_state.status = 'stopped'
 
     # Save the video and Excel files and provide a download button for the ZIP file
-    if annotated_frames and st.session_state.status == 'stopped':        
+    if st.session_state.annotated_frames and st.session_state.status == 'stopped':        
         # Menentukan jalur absolut dari direktori saat ini
         video_file_path = os.path.join(current_dir, '..', 'outputTest', 'output_video.mp4')
 
-        save_video(annotated_frames, video_file_path, FPS)
+        save_video(st.session_state.annotated_frames, video_file_path, FPS)
 
         # Buat DataFrame untuk kecepatan setiap ID terdeteksi
         speed_df = pd.DataFrame(st.session_state.vehicle_speed_data)
@@ -349,6 +342,14 @@ def main():
 
         # Delete the video file after download
         os.remove(video_file_path)
+
+        st.session_state.frame_index = 0
+        st.session_state.vehicle_count = defaultdict(int)
+        st.session_state.accident_count = defaultdict(int)
+        st.session_state.counted_ids = set()
+        st.session_state.last_frame = None
+        st.session_state.vehicle_speed_data = []
+        st.session_state.detections_data = []
     
     # Tampilkan frame terakhir dan grafik saat status 'paused'
     if st.session_state.status == 'paused' and st.session_state.last_frame is not None:
