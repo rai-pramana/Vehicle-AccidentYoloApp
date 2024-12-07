@@ -312,6 +312,8 @@ def main():
                     vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
                     plot_counter += 1  # Tingkatkan counter untuk key yang unik
             
+            st.session_state.status == 'stopped'
+            
             # Save the video and Excel files and provide a download button for the ZIP file
             if annotated_frames:
                 # Menentukan jalur absolut dari direktori saat ini
