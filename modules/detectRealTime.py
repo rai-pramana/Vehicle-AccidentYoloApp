@@ -30,11 +30,6 @@ def main():
     model_files = [f for f in os.listdir(model_path) if f.endswith('.pt')]
     selected_model = st.sidebar.selectbox("Pilih Model", model_files)
 
-    stframe = st.empty()  # Tempat untuk menampilkan frame
-    vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
-    vehicle_speed_placeholder = st.empty()  # Placeholder untuk grafik kecepatan kendaraan
-    accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaan
-
     # Sidebar inputs
     st.sidebar.header("Pengaturan Input")
 
@@ -42,6 +37,20 @@ def main():
     uploaded_video = st.sidebar.file_uploader("Upload Video", type=["mp4", "avi", "mov", "mkv"])
 
     if uploaded_video is not None:
+        if 'last_uploaded_video' not in st.session_state or st.session_state.last_uploaded_video != uploaded_video:
+            # Reset state jika video baru diunggah
+            st.session_state.status = 'stopped'
+            st.session_state.frame_index = 0
+            st.session_state.vehicle_count = defaultdict(int)
+            st.session_state.accident_count = defaultdict(int)
+            st.session_state.counted_ids = set()
+            st.session_state.last_frame = None
+            st.session_state.vehicle_speed_data = []
+            st.session_state.detections_data = []
+
+            # Simpan video yang baru diunggah
+            st.session_state.last_uploaded_video = uploaded_video
+
         # Tombol kontrol
         if 'status' not in st.session_state:
             st.session_state.status = 'stopped'
@@ -59,6 +68,11 @@ def main():
             st.session_state.vehicle_speed_data = []
         if 'detections_data' not in st.session_state:
             st.session_state.detections_data = []
+
+        stframe = st.empty()  # Tempat untuk menampilkan frame
+        vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
+        vehicle_speed_placeholder = st.empty()  # Placeholder untuk grafik kecepatan kendaraan
+        accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaan
 
         start_reset_button = st.sidebar.button("Start/Reset")
         continue_button = st.sidebar.button("Continue")
