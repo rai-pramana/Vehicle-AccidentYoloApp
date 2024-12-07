@@ -21,7 +21,7 @@ from utils.viewTransformer import ViewTransformer
 
 def main():
     # Streamlit UI
-    st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Real-Time")
+    st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Video")
 
     # Dapatkan daftar model yang tersedia di folder 'models/'
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -134,6 +134,7 @@ def main():
             tfile.write(uploaded_video.read())
 
             video_info = sv.VideoInfo.from_video_path(video_path=tfile.name)
+
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
             # Load YOLO model
@@ -151,6 +152,7 @@ def main():
 
             thickness = sv.calculate_optimal_line_thickness(video_info.resolution_wh)
             text_scale = sv.calculate_optimal_text_scale(video_info.resolution_wh)
+            
             box_annotator = sv.BoxAnnotator(thickness=thickness)
             label_annotator = sv.LabelAnnotator(
                 text_scale=text_scale,
@@ -379,32 +381,3 @@ def main():
                 # Perbarui grafik di placeholder
                 vehicle_speed_placeholder.empty()  # Kosongkan placeholder
                 vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
-
-        # # Sediakan tombol untuk mengunduh file Excel
-        # st.sidebar.download_button(
-        #     label="Unduh Hasil Deteksi",
-        #     data=output.getvalue(),
-        #     file_name="hasil_deteksi.xlsx",
-        #     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        # )
-
-        # # Save the video and provide a download button
-        # with NamedTemporaryFile(delete=False, suffix='.mp4') as tmp_video_file:
-        #     save_video(annotated_frames, tmp_video_file.name, video_info.fps)
-        #     st.sidebar.download_button(
-        #         label="Download Video",
-        #         data=open(tmp_video_file.name, 'rb').read(),
-        #         file_name='output_video.mp4',
-        #         mime='video/mp4'
-        #     )
-
-        # # Save the video and provide a download button if frames are available
-        # if annotated_frames:
-        #     video_file_path = 'output_video.mp4'
-        #     save_video(annotated_frames, video_file_path, video_info.fps)
-        #     st.sidebar.download_button(
-        #         label="Download Video",
-        #         data=open(video_file_path, 'rb').read(),
-        #         file_name='output_video.mp4',
-        #         mime='video/mp4'
-        #     )
