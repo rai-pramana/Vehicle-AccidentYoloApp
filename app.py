@@ -107,11 +107,34 @@ uploaded_video = st.sidebar.file_uploader("Upload Video", type=["mp4", "avi", "m
 target_width = st.sidebar.number_input("Target Width (meter)", min_value=1.0, max_value=100.0, value=13.56, step=0.01)
 target_height = st.sidebar.number_input("Target Height (meter)", min_value=1.0, max_value=500.0, value=20.95, step=0.01)
 
-# Input untuk Source Coordinates
-source_coordinates = st.sidebar.text_input(
-    "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
-    value="619,394;1032,423;968,717;240,666"
+
+# Dropdown untuk memilih lokasi
+location = st.sidebar.selectbox(
+    "Location",
+    ["Simpang Pidada", "Padang Galak", "Custom"]
 )
+
+# Tentukan koordinat berdasarkan lokasi yang dipilih
+if location == "Simpang Pidada":
+    source_coordinates = "800,591;1548,634;1452,1075;200,999"
+elif location == "Padang Galak":
+    source_coordinates = "900,591;1548,634;1452,1075;200,999"
+elif location == "Custom":
+    source_coordinates = st.sidebar.text_input(
+        "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
+        value="",
+        placeholder="Enter custom coordinates"
+    )
+else:
+    source_coordinates = ""
+
+# Tampilkan koordinat yang dipilih
+if location != "Custom":
+    st.sidebar.text_input(
+        "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
+        value=source_coordinates,
+        disabled=True
+    )
 
 # Parse Source Coordinates
 SOURCE = parse_coordinates(source_coordinates)
@@ -130,6 +153,8 @@ try:
 except ValueError:
     st.error("Format waktu tidak valid. Gunakan format: dd-mm-yyyy hh:mm:ss")
     start_time = None
+
+annotated_frames = []
 
 if uploaded_video and SOURCE is not None and start_time is not None:
     tfile = NamedTemporaryFile(delete=False)
