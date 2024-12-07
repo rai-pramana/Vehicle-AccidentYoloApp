@@ -12,42 +12,12 @@ import os
 from datetime import datetime, timedelta
 from io import BytesIO
 import zipfile
+import sys
 
-# Save the annotated frames as a video file
-def save_video(frames, output_path, fps):
-    if frames:
-        height, width, layers = frames[0].shape
-        video = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
-
-        for frame in frames:
-            video.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-
-        video.release()
-
-
-# Fungsi untuk mengubah input string ke array numpy
-def parse_coordinates(coord_string):
-    try:
-        points = [list(map(int, point.split(','))) for point in coord_string.split(';')]
-        return np.array(points)
-    except:
-        st.error("Format koordinat tidak valid. Gunakan format: x1,y1;x2,y2;x3,y3;x4,y4")
-        return None
-
-
-class ViewTransformer:
-    def __init__(self, source: np.ndarray, target: np.ndarray) -> None:
-        source = source.astype(np.float32)
-        target = target.astype(np.float32)
-        self.m = cv2.getPerspectiveTransform(source, target)
-
-    def transform_points(self, points: np.ndarray) -> np.ndarray:
-        if points.size == 0:
-            return points
-        reshaped_points = points.reshape(-1, 1, 2).astype(np.float32)
-        transformed_points = cv2.perspectiveTransform(reshaped_points, self.m)
-        return transformed_points.reshape(-1, 2)
-
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils.videoUtils import save_video
+from utils.coordinateUtils import parse_coordinates
+from utils.viewTransformer import ViewTransformer
 
 # Streamlit UI
 st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Dengan Statistik")
