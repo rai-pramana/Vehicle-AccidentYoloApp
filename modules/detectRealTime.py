@@ -38,10 +38,8 @@ def main():
     camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-    # Dapatkan FPS dari webcam
-    FPS = camera.get(cv2.CAP_PROP_FPS)
-    if FPS == 0:
-        FPS = 30  # Default FPS jika tidak dapat diperoleh dari webcam
+    # Dapatkan FPS dari webcam FPS = camera.get(cv2.CAP_PROP_FPS) #5
+    FPS = 5  # Default FPS 25
 
     stframe = st.empty()  # Tempat untuk menampilkan frame
     vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
@@ -293,8 +291,6 @@ def main():
     # Release the webcam when done
     camera.release()
 
-    st.session_state.status = 'stopped'
-
     # Save the video and Excel files and provide a download button for the ZIP file
     if st.session_state.annotated_frames and st.session_state.status == 'stopped':        
         # Menentukan jalur absolut dari direktori saat ini
@@ -350,6 +346,7 @@ def main():
         st.session_state.last_frame = None
         st.session_state.vehicle_speed_data = []
         st.session_state.detections_data = []
+        st.session_state.annotated_frames = []
     
     # Tampilkan frame terakhir dan grafik saat status 'paused'
     if st.session_state.status == 'paused' and st.session_state.last_frame is not None:
