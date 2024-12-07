@@ -37,9 +37,14 @@ def main():
     uploaded_video = st.sidebar.file_uploader("Upload Video", type=["mp4", "avi", "mov", "mkv"])
 
     if uploaded_video is not None:
+        stframe = st.empty()  # Tempat untuk menampilkan frame
+        vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
+        vehicle_speed_placeholder = st.empty()  # Placeholder untuk grafik kecepatan kendaraan
+        accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaan
+        
         if 'last_uploaded_video' not in st.session_state or st.session_state.last_uploaded_video != uploaded_video:
             # Reset state jika video baru diunggah
-            st.session_state.status = 'stopped'
+            st.session_state.status = 'paused'
             st.session_state.frame_index = 0
             st.session_state.vehicle_count = defaultdict(int)
             st.session_state.accident_count = defaultdict(int)
@@ -53,7 +58,7 @@ def main():
 
         # Tombol kontrol
         if 'status' not in st.session_state:
-            st.session_state.status = 'stopped'
+            st.session_state.status = 'paused'
         if 'frame_index' not in st.session_state:
             st.session_state.frame_index = 0
         if 'last_frame' not in st.session_state:
@@ -68,17 +73,9 @@ def main():
             st.session_state.vehicle_speed_data = []
         if 'detections_data' not in st.session_state:
             st.session_state.detections_data = []
-
-        stframe = st.empty()  # Tempat untuk menampilkan frame
-        vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
-        vehicle_speed_placeholder = st.empty()  # Placeholder untuk grafik kecepatan kendaraan
-        accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaan
-
-        start_reset_button = st.sidebar.button("Start/Reset")
-        continue_button = st.sidebar.button("Continue")
-        pause_button = st.sidebar.button("Pause")
-
-        if start_reset_button:
+        
+        # Tombol kontrol
+        if st.sidebar.button("Start/Reset"):
             st.session_state.status = 'running'
             st.session_state.frame_index = 0
             st.session_state.vehicle_count = defaultdict(int)
@@ -87,15 +84,14 @@ def main():
             st.session_state.last_frame = None
             st.session_state.vehicle_speed_data = []
             st.session_state.detections_data = []
-        elif continue_button:
+        if st.sidebar.button("Continue"):
             st.session_state.status = 'running'
-        elif pause_button:
-            st.session_state.status = 'stopped'
+        if st.sidebar.button("Pause"):
+            st.session_state.status = 'paused'
 
         # Input untuk Target Width dan Height
         target_width = st.sidebar.number_input("Target Width (meter)", min_value=1.0, max_value=100.0, value=13.56, step=0.01)
         target_height = st.sidebar.number_input("Target Height (meter)", min_value=1.0, max_value=500.0, value=20.95, step=0.01)
-
 
         # Dropdown untuk memilih lokasi
         location = st.sidebar.selectbox(
@@ -312,7 +308,7 @@ def main():
                     vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
                     plot_counter += 1  # Tingkatkan counter untuk key yang unik
             
-            st.session_state.status == 'stopped'
+            st.session_state.status == 'paused'
 
             # Save the video and Excel files and provide a download button for the ZIP file
             if annotated_frames:
@@ -363,8 +359,8 @@ def main():
                 os.remove(video_file_path)
 
 
-        # Tampilkan frame terakhir dan grafik saat status 'stopped'
-        if st.session_state.status == 'stopped' and st.session_state.last_frame is not None:
+        # Tampilkan frame terakhir dan grafik saat status 'paused'
+        if st.session_state.status == 'paused' and st.session_state.last_frame is not None:
             stframe.image(st.session_state.last_frame, channels="RGB")
 
             vehicle_stats_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Vehicle", "Count"])
