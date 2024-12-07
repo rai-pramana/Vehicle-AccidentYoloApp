@@ -12,48 +12,21 @@ import os
 from datetime import datetime, timedelta
 from io import BytesIO
 import zipfile
+import sys
 
-
-def save_video(frames, output_path, fps):
-    if frames:
-        height, width, layers = frames[0].shape
-        video = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
-
-        for frame in frames:
-            video.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-
-        video.release()
-
-
-# Fungsi untuk mengubah input string ke array numpy
-def parse_coordinates(coord_string):
-    try:
-        points = [list(map(int, point.split(','))) for point in coord_string.split(';')]
-        return np.array(points)
-    except:
-        st.error("Format koordinat tidak valid. Gunakan format: x1,y1;x2,y2;x3,y3;x4,y4")
-        return None
-
-
-class ViewTransformer:
-    def __init__(self, source: np.ndarray, target: np.ndarray) -> None:
-        source = source.astype(np.float32)
-        target = target.astype(np.float32)
-        self.m = cv2.getPerspectiveTransform(source, target)
-
-    def transform_points(self, points: np.ndarray) -> np.ndarray:
-        if points.size == 0:
-            return points
-        reshaped_points = points.reshape(-1, 1, 2).astype(np.float32)
-        transformed_points = cv2.perspectiveTransform(reshaped_points, self.m)
-        return transformed_points.reshape(-1, 2)
-
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils.videoUtils import save_video
+from utils.coordinateUtils import parse_coordinates
+from utils.viewTransformer import ViewTransformer
 
 # Streamlit UI
 st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Dengan Statistik")
 
 # Dapatkan daftar model yang tersedia di folder 'models/'
-model_files = [f for f in os.listdir('../models') if f.endswith('.pt')]
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+model_path = os.path.join(current_dir, '..', 'models')
+model_files = [f for f in os.listdir(model_path) if f.endswith('.pt')]
 selected_model = st.sidebar.selectbox("Pilih Model", model_files)
 
 stframe = st.empty()  # Tempat untuk menampilkan frame
@@ -112,14 +85,12 @@ if uploaded_video is not None:
     # Dropdown untuk memilih lokasi
     location = st.sidebar.selectbox(
         "Location",
-        ["Simpang Pidada", "Padang Galak", "Custom"]
+        ["Simpang Pidada", "Custom"]
     )
 
     # Tentukan koordinat berdasarkan lokasi yang dipilih
     if location == "Simpang Pidada":
         source_coordinates = "800,591;1548,634;1452,1075;200,999"
-    elif location == "Padang Galak":
-        source_coordinates = "900,591;1548,634;1452,1075;200,999"
     elif location == "Custom":
         source_coordinates = st.sidebar.text_input(
             "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
@@ -165,7 +136,7 @@ if uploaded_video is not None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Load YOLO model
-        model = YOLO(f'../models/{selected_model}').to(device)  # Ganti dengan model yang dipilih
+        model = YOLO(f'{model_path}/{selected_model}').to(device)  # Ganti dengan model yang dipilih
 
         # Ambil nama class dari model
         all_classes = model.names.values()
@@ -326,7 +297,9 @@ if uploaded_video is not None:
         
         # Save the video and Excel files and provide a download button for the ZIP file
         if annotated_frames:
-            video_file_path = '../outputTest/output_video.mp4'
+            # Menentukan jalur absolut dari direktori saat ini
+            video_file_path = os.path.join(current_dir, '..', 'outputTest', 'output_video.mp4')
+
             save_video(annotated_frames, video_file_path, video_info.fps)
 
             # Buat DataFrame untuk kecepatan setiap ID terdeteksi
