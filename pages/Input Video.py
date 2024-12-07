@@ -13,11 +13,7 @@ from datetime import datetime, timedelta
 from io import BytesIO
 import zipfile
 
-st.set_page_config(
-    page_title="Deteksi Kecelakaan - Dengan Statistik",
-    page_icon="👋",
-)
-
+# Save the annotated frames as a video file
 def save_video(frames, output_path, fps):
     if frames:
         height, width, layers = frames[0].shape
@@ -57,7 +53,7 @@ class ViewTransformer:
 st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Dengan Statistik")
 
 # Dapatkan daftar model yang tersedia di folder 'models/'
-model_files = [f for f in os.listdir('models') if f.endswith('.pt')]
+model_files = [f for f in os.listdir('../models') if f.endswith('.pt')]
 selected_model = st.sidebar.selectbox("Pilih Model", model_files)
 
 stframe = st.empty()  # Tempat untuk menampilkan frame
@@ -126,7 +122,7 @@ elif location == "Padang Galak":
 elif location == "Custom":
     source_coordinates = st.sidebar.text_input(
         "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
-        value="900,591;1548,634;1452,1075;200,999",
+        value="",
         placeholder="Enter custom coordinates"
     )
 else:
@@ -168,7 +164,7 @@ if uploaded_video and SOURCE is not None and start_time is not None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load YOLO model
-    model = YOLO(f'models/{selected_model}').to(device)  # Ganti dengan model yang dipilih
+    model = YOLO(f'../models/{selected_model}').to(device)  # Ganti dengan model yang dipilih
 
     # Ambil nama class dari model
     all_classes = model.names.values()
@@ -326,6 +322,53 @@ if uploaded_video and SOURCE is not None and start_time is not None:
             vehicle_speed_placeholder.empty()  # Kosongkan placeholder
             vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
             plot_counter += 1  # Tingkatkan counter untuk key yang unik
+    
+    # Save the video and Excel files and provide a download button for the ZIP file
+    if annotated_frames:
+        video_file_path = 'outputTest/output_video.mp4'
+        save_video(annotated_frames, video_file_path, video_info.fps)
+
+        # Buat DataFrame untuk kecepatan setiap ID terdeteksi
+        speed_df = pd.DataFrame(st.session_state.vehicle_speed_data)
+
+        # Ambil semua nama kelas dari model
+        all_classes = list(model.names.values())
+
+        # Buat DataFrame untuk jumlah kendaraan dan kecelakaan
+        vehicle_count_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Class", "Count"])
+        accident_count_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Class", "Count"])
+
+        # Gabungkan semua kelas kendaraan dan kecelakaan dengan nilai 0 untuk yang tidak terdeteksi
+        vehicle_count_df = vehicle_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
+        accident_count_df = accident_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
+
+        # Gabungkan DataFrame kendaraan dan kecelakaan
+        count_df = pd.concat([vehicle_count_df, accident_count_df], ignore_index=True)
+
+        # Tulis kedua DataFrame ke dalam satu file Excel dengan dua sheet
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            speed_df.to_excel(writer, index=False, sheet_name='Kecepatan')
+            count_df.to_excel(writer, index=False, sheet_name='Jumlah Kelas')
+        excel_data = output.getvalue()
+
+        # Create a ZIP file containing both the video and Excel files
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+            zip_file.write(video_file_path, os.path.basename(video_file_path))
+            zip_file.writestr('hasil_deteksi.xlsx', excel_data)
+
+        # Provide a download button for the ZIP file
+        st.sidebar.download_button(
+            label="Download Hasil Deteksi",
+            data=zip_buffer.getvalue(),
+            file_name='output_files.zip',
+            mime='application/zip'
+        )
+
+        # Delete the video file after download
+        os.remove(video_file_path)
+
 
 # Tampilkan frame terakhir dan grafik saat status 'stopped'
 if st.session_state.status == 'stopped' and st.session_state.last_frame is not None:
@@ -361,53 +404,6 @@ if st.session_state.status == 'stopped' and st.session_state.last_frame is not N
         # Perbarui grafik di placeholder
         vehicle_speed_placeholder.empty()  # Kosongkan placeholder
         vehicle_speed_placeholder.plotly_chart(fig_speed, key=f"vehicle_speed_{plot_counter}")
-
-# Save the video and Excel files and provide a download button for the ZIP file
-if annotated_frames:
-    video_file_path = 'outputTest/output_video.mp4'
-    save_video(annotated_frames, video_file_path, video_info.fps)
-
-    # Buat DataFrame untuk kecepatan setiap ID terdeteksi
-    speed_df = pd.DataFrame(st.session_state.vehicle_speed_data)
-
-    # Ambil semua nama kelas dari model
-    all_classes = list(model.names.values())
-
-    # Buat DataFrame untuk jumlah kendaraan dan kecelakaan
-    vehicle_count_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Class", "Count"])
-    accident_count_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Class", "Count"])
-
-    # Gabungkan semua kelas kendaraan dan kecelakaan dengan nilai 0 untuk yang tidak terdeteksi
-    vehicle_count_df = vehicle_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
-    accident_count_df = accident_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
-
-    # Gabungkan DataFrame kendaraan dan kecelakaan
-    count_df = pd.concat([vehicle_count_df, accident_count_df], ignore_index=True)
-
-    # Tulis kedua DataFrame ke dalam satu file Excel dengan dua sheet
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        speed_df.to_excel(writer, index=False, sheet_name='Kecepatan')
-        count_df.to_excel(writer, index=False, sheet_name='Jumlah Kelas')
-    excel_data = output.getvalue()
-
-    # Create a ZIP file containing both the video and Excel files
-    zip_buffer = BytesIO()
-    with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
-        zip_file.write(video_file_path, os.path.basename(video_file_path))
-        zip_file.writestr('hasil_deteksi.xlsx', excel_data)
-
-    # Provide a download button for the ZIP file
-    st.sidebar.download_button(
-        label="Download Hasil Deteksi",
-        data=zip_buffer.getvalue(),
-        file_name='output_files.zip',
-        mime='application/zip'
-    )
-
-    # Delete the video file after download
-    os.remove(video_file_path)
-
 
 # # Sediakan tombol untuk mengunduh file Excel
 # st.sidebar.download_button(
