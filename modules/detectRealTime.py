@@ -30,16 +30,20 @@ def main():
     selected_model = st.sidebar.selectbox("Pilih Model", model_files)
 
     # Set up webcam capture
-    camera = cv2.VideoCapture(1)  # Use webcam with ID 0 (first webcam)
+    camera = cv2.VideoCapture(1)  # Use webcam with ID 0 (Virtual Camera OBS)
     if not camera.isOpened():
         st.error("Webcam tidak tersedia")
         return
 
-    camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    frame_width = 640
+    frame_height = 360
+    resolution_wh = (frame_width, frame_height)
+
+    camera.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
+    camera.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
 
     # Dapatkan FPS dari webcam FPS = camera.get(cv2.CAP_PROP_FPS) #5
-    FPS = 5  # Default FPS 25
+    FPS = 25 / 2  # Default FPS 25
 
     stframe = st.empty()  # Tempat untuk menampilkan frame
     vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
@@ -140,8 +144,8 @@ def main():
         track_activation_threshold=confidence_threshold
     )
 
-    thickness = 2  # Custom thickness value
-    text_scale = 1  # Custom text scale value
+    thickness = sv.calculate_optimal_line_thickness(resolution_wh) 
+    text_scale = sv.calculate_optimal_text_scale(resolution_wh) 
 
     box_annotator = sv.BoxAnnotator(thickness=thickness)
     label_annotator = sv.LabelAnnotator(
@@ -222,27 +226,27 @@ def main():
         annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections, labels=labels)
 
         # Tambahkan anotasi teks untuk jumlah kendaraan dan kecelakaan
-        y_offset = 40
+        y_offset = int(30 * frame_height / 360)
         for vehicle_class in vehicle_classes:
             count = st.session_state.vehicle_count[vehicle_class]
             text = f"{vehicle_class.capitalize()}: {count}"
-            (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+            (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, thickness)
             cv2.rectangle(annotated_frame, (10, y_offset - text_height - baseline), (10 + text_width, y_offset + baseline), (0, 0, 0), cv2.FILLED)
-            cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
-            y_offset += 40
+            cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), int(thickness / 2), cv2.LINE_AA)
+            y_offset += int(20 * frame_height / 360)
         
         total_accidents = sum(st.session_state.accident_count.values())
         text = f"Accidents: {total_accidents}"
-        (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+        (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, thickness)
         cv2.rectangle(annotated_frame, (10, y_offset - text_height - baseline), (10 + text_width, y_offset + baseline), (0, 0, 0), cv2.FILLED)
-        cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), int(thickness / 2), cv2.LINE_AA)
 
         # Tambahkan anotasi teks untuk timestamp
         current_time = start_time + timedelta(seconds=st.session_state.frame_index / FPS)
         timestamp_text = current_time.strftime("%d-%m-%Y %H:%M:%S")
-        (text_width, text_height), baseline = cv2.getTextSize(timestamp_text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
-        cv2.rectangle(annotated_frame, (10, y_offset + 40 - text_height - baseline), (10 + text_width, y_offset + 40 + baseline), (0, 0, 0), cv2.FILLED)
-        cv2.putText(annotated_frame, timestamp_text, (10, y_offset + 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+        (text_width, text_height), baseline = cv2.getTextSize(timestamp_text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, thickness)
+        cv2.rectangle(annotated_frame, (10, y_offset + int(20 * frame_height / 360) - text_height - baseline), (10 + text_width, y_offset + int(20 * frame_height / 360) + baseline), (0, 0, 0), cv2.FILLED)
+        cv2.putText(annotated_frame, timestamp_text, (10, y_offset + int(20 * frame_height / 360)), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), int(thickness / 2), cv2.LINE_AA)
 
         # Convert annotated frame to RGB for display
         annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
