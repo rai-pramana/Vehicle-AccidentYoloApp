@@ -188,7 +188,10 @@ def main():
                 frame = frames[st.session_state.frame_index]
                 st.session_state.frame_index += 1
 
-                result = model(frame)[0]
+                gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                gray_frame_rgb = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2RGB)
+
+                result = model(gray_frame_rgb)[0]
                 detections = sv.Detections.from_ultralytics(result)
                 detections = detections[detections.confidence > confidence_threshold]
                 detections = detections[polygon_zone.trigger(detections)]

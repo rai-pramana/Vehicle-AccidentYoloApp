@@ -178,7 +178,10 @@ def main():
         elapsed_time = t.time() - start_processing_time
         current_time = start_time + timedelta(seconds=elapsed_time)
 
-        result = model(frame)[0]
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray_frame_rgb = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2RGB)
+
+        result = model(gray_frame_rgb)[0]
         detections = sv.Detections.from_ultralytics(result)
         detections = detections[detections.confidence > confidence_threshold]
         detections = detections[polygon_zone.trigger(detections)]
