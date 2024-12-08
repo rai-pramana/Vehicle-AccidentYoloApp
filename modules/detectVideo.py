@@ -187,7 +187,8 @@ def main():
             while st.session_state.status == 'running' and st.session_state.frame_index < len(frames):
                 frame = frames[st.session_state.frame_index]
                 st.session_state.frame_index += 1
-
+                
+                # Ubah frame ke grayscale
                 gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 gray_frame_rgb = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2RGB)
 

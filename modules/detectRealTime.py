@@ -177,7 +177,8 @@ def main():
         # Hitung waktu yang telah berlalu
         elapsed_time = t.time() - start_processing_time
         current_time = start_time + timedelta(seconds=elapsed_time)
-
+        
+        # Ubah frame ke grayscale
         gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray_frame_rgb = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2RGB)
 
