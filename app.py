@@ -5,6 +5,13 @@ from modules import detectImage, detectVideo, detectRealTime
 def reset_session_state():
     st.session_state.clear()
 
+st.set_page_config(
+    page_title="Aplikasi Deteksi Kendaraan dan Kecelakaan",
+    page_icon="🚗",
+    layout="centered",
+    initial_sidebar_state="auto"
+)
+
 # Sidebar navigasi
 st.sidebar.title("Navigasi")
 page = st.sidebar.selectbox(

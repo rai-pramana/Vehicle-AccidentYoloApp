@@ -1,4 +1,3 @@
-# coordinate_utils.py
 import numpy as np
 import streamlit as st
 
