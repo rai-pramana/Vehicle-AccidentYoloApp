@@ -30,7 +30,7 @@ def main():
     selected_model = st.sidebar.selectbox("Pilih Model", model_files)
 
     # Set up webcam capture
-    camera = cv2.VideoCapture(1)  # Use webcam with ID 0 (Virtual Camera OBS)
+    camera = cv2.VideoCapture(1)  # Use webcam with ID 1 (Virtual Camera OBS)
     if not camera.isOpened():
         st.error("Webcam tidak tersedia")
         return
