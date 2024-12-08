@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from io import BytesIO
 import zipfile
 import sys
+import time as t
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.videoUtils import save_video
@@ -129,6 +130,8 @@ def main():
         st.error("Format waktu tidak valid. Gunakan format: dd-mm-yyyy hh:mm:ss")
         start_time = None
 
+    start_processing_time = t.time()
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load YOLO model
@@ -171,6 +174,10 @@ def main():
             st.error("Gagal membaca frame dari webcam")
             break
 
+        # Hitung waktu yang telah berlalu
+        elapsed_time = t.time() - start_processing_time
+        current_time = start_time + timedelta(seconds=elapsed_time)
+
         result = model(frame)[0]
         detections = sv.Detections.from_ultralytics(result)
         detections = detections[detections.confidence > confidence_threshold]
@@ -206,8 +213,8 @@ def main():
                 time = len(coordinates[tracker_id]) / FPS
                 speed = distance / time * 3.6  # Kecepatan dalam km/h
                 labels.append(f"#{tracker_id} {int(speed)} km/h")
-                timestamp = start_time + timedelta(seconds=st.session_state.frame_index / FPS)
-                st.session_state.vehicle_speed_data.append({"Detik": st.session_state.frame_index / FPS, "Timestamp": timestamp, "ID": tracker_id, "Class": class_name, "Speed": speed})
+                timestamp = start_time + timedelta(seconds=elapsed_time)
+                st.session_state.vehicle_speed_data.append({"Detik": elapsed_time, "Timestamp": timestamp, "ID": tracker_id, "Class": class_name, "Speed": speed})
             else:
                 labels.append(f"#{tracker_id}")
 
@@ -242,7 +249,6 @@ def main():
         cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), thickness, cv2.LINE_AA)
 
         # Tambahkan anotasi teks untuk timestamp
-        current_time = start_time + timedelta(seconds=st.session_state.frame_index / FPS)
         timestamp_text = current_time.strftime("%d-%m-%Y %H:%M:%S")
         (text_width, text_height), baseline = cv2.getTextSize(timestamp_text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, thickness)
         cv2.rectangle(annotated_frame, (10, y_offset + int(20 * frame_height / 360) - text_height - baseline), (10 + text_width, y_offset + int(20 * frame_height / 360) + baseline), (0, 0, 0), cv2.FILLED)
