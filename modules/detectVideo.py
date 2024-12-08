@@ -160,7 +160,7 @@ def main():
                 track_activation_threshold=confidence_threshold
             )
 
-            thickness = sv.calculate_optimal_line_thickness(video_info.resolution_wh)
+            thickness = int(sv.calculate_optimal_line_thickness(video_info.resolution_wh) / 2)
             text_scale = sv.calculate_optimal_text_scale(video_info.resolution_wh)
             
             box_annotator = sv.BoxAnnotator(thickness=thickness)
@@ -248,21 +248,21 @@ def main():
                     text = f"{vehicle_class.capitalize()}: {count}"
                     (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, thickness)
                     cv2.rectangle(annotated_frame, (10, y_offset - text_height - baseline), (10 + text_width, y_offset + baseline), (0, 0, 0), cv2.FILLED)
-                    cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), int(thickness / 2), cv2.LINE_AA)
+                    cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), thickness, cv2.LINE_AA)
                     y_offset += int(20 * video_info.height / 360)
                 
                 total_accidents = sum(st.session_state.accident_count.values())
                 text = f"Accidents: {total_accidents}"
                 (text_width, text_height), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, thickness)
                 cv2.rectangle(annotated_frame, (10, y_offset - text_height - baseline), (10 + text_width, y_offset + baseline), (0, 0, 0), cv2.FILLED)
-                cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), int(thickness / 2), cv2.LINE_AA)
+                cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), thickness, cv2.LINE_AA)
 
                 # Tambahkan anotasi teks untuk timestamp
                 current_time = start_time + timedelta(seconds=st.session_state.frame_index / video_info.fps)
                 timestamp_text = current_time.strftime("%d-%m-%Y %H:%M:%S")
                 (text_width, text_height), baseline = cv2.getTextSize(timestamp_text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, thickness)
                 cv2.rectangle(annotated_frame, (10, y_offset + int(20 * video_info.height / 360) - text_height - baseline), (10 + text_width, y_offset + int(20 * video_info.height / 360) + baseline), (0, 0, 0), cv2.FILLED)
-                cv2.putText(annotated_frame, timestamp_text, (10, y_offset + int(20 * video_info.height / 360)), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), int(thickness / 2), cv2.LINE_AA)
+                cv2.putText(annotated_frame, timestamp_text, (10, y_offset + int(20 * video_info.height / 360)), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), thickness, cv2.LINE_AA)
 
                 # Convert annotated frame to RGB for display
                 annotated_frame = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
