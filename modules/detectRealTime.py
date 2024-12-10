@@ -44,7 +44,8 @@ def main():
     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
 
     # Dapatkan FPS dari webcam FPS = camera.get(cv2.CAP_PROP_FPS) #5
-    FPS = 25 / 2.4  # Default FPS 25 (atur sesuai performa pemrosesan hardware)
+    FPS = 25 / 2.4  # Default FPS 25 (atur sesuai performa pemrosesan hardware) L
+    # FPS = 25 / 1.97  # Default FPS 25 (atur sesuai performa pemrosesan hardware) N
 
     stframe = st.empty()  # Tempat untuk menampilkan frame
     vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
