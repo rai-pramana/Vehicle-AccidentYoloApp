@@ -101,7 +101,7 @@ def main():
 
         # Tentukan koordinat berdasarkan lokasi yang dipilih
         if location == "Simpang Pidada":
-            source_coordinates = "800,591;1548,634;1452,1075;200,999"
+            source_coordinates = "619,394;1032,423;968,717;240,666"
         elif location == "Custom":
             source_coordinates = st.sidebar.text_input(
                 "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",

@@ -1,4 +1,6 @@
 *.pt
 *.zip
 __pycache__/
-*onnx
+*.pyc
+*.onnx
+outputTest/
