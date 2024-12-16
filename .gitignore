@@ -1,3 +1,4 @@
 *.pt
 *.zip
 __pycache__/
+*onnx
