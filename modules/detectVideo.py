@@ -128,7 +128,7 @@ def main():
         iou_threshold = st.sidebar.slider("IoU Threshold", 0.0, 1.0, 0.7, 0.05)
 
         # Input untuk waktu mulai video
-        start_time_str = st.sidebar.text_input("Waktu Mulai Video (dd-mm-yyyy hh:mm:ss)", value="01-01-2023 00:00:00")
+        start_time_str = st.sidebar.text_input("Waktu Mulai Video (dd-mm-yyyy hh:mm:ss)", value="27-06-2023 06:40:10")
 
         # Parse waktu mulai video
         try:
@@ -328,16 +328,25 @@ def main():
                 all_classes = list(model.names.values())
 
                 # Buat DataFrame untuk jumlah kendaraan dan kecelakaan
-                vehicle_count_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Class", "Count"])
-                accident_count_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Class", "Count"])
+                vehicle_count_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Class", "Count_vehicle"])
+                accident_count_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Class", "Count_accident"])
 
                 # Gabungkan semua kelas kendaraan dan kecelakaan dengan nilai 0 untuk yang tidak terdeteksi
                 vehicle_count_df = vehicle_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
                 accident_count_df = accident_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
 
                 # Gabungkan DataFrame kendaraan dan kecelakaan
-                count_df = pd.concat([vehicle_count_df, accident_count_df], ignore_index=True)
+                count_df = pd.merge(vehicle_count_df, accident_count_df, on="Class", how="outer", suffixes=("_vehicle", "_accident"))
 
+                # Gabungkan kedua kolom Count menjadi satu kolom "Count"
+                count_df["Count"] = count_df["Count_vehicle"] + count_df["Count_accident"]
+
+                # Drop kolom tambahan (Count_vehicle dan Count_accident)
+                count_df = count_df.drop(columns=["Count_vehicle", "Count_accident"])
+
+                # Hapus duplikasi jika ada
+                count_df = count_df.drop_duplicates(subset=["Class"])
+                
                 # Tulis kedua DataFrame ke dalam satu file Excel dengan dua sheet
                 output = BytesIO()
                 with pd.ExcelWriter(output, engine='openpyxl') as writer:
