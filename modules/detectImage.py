@@ -44,7 +44,7 @@ def main():
         resolution_wh = (width, height)
 
         # Load model
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = YOLO(f'{model_path}/{selected_model}').to(device)
 
         # Deteksi objek pada gambar grayscale yang sudah dikonversi ke RGB
