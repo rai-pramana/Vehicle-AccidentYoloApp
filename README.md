@@ -62,7 +62,7 @@ venv\Scripts\activate  # Untuk Windows
 pip install -r requirements.txt
 ```
 
-Jika `requirements.txt` belum ada, bisa diinstal satu per satu:
+Atau bisa diinstal satu per satu:
 
 ```sh
 pip install numpy opencv-python pandas pillow plotly streamlit supervision torch ultralytics
@@ -85,11 +85,12 @@ Akses aplikasi melalui browser di **http://localhost:8501**.
 ## 🔧 Cara Penggunaan
 
 1. **Pilih mode deteksi**:
+    - **Deteksi Gambar**: Memproses inputan gambar.
     - **Deteksi Video**: Memproses semua frame dari video input untuk mendapatkan hasil yang lebih akurat.
-    - **Deteksi Real-Time**: Menggunakan webcam untuk deteksi langsung dengan FPS terbatas berdasarkan kemampuan perangkat.
-2. **Input video atau nyalakan webcam**.
-3. **Aplikasi akan menampilkan hasil deteksi, kecepatan kendaraan, dan peringatan kecelakaan** jika terdeteksi.
-4. **Data kecepatan dan kecelakaan akan dicatat dalam laporan**.
+    - **Deteksi Real-Time**: Menggunakan screen record (OBS Virtual Camera) untuk deteksi langsung dengan FPS terbatas berdasarkan kemampuan perangkat.
+2. **Input gambar, video atau nyalakan webcam**.
+3. **Aplikasi akan menampilkan hasil deteksi, kecepatan kendaraan (Deteksi Video atau Real-Time), dan peringatan kecelakaan (Deteksi Video atau Real-Time)** jika terdeteksi.
+4. **Data kecepatan dan kecelakaan akan dicatat dalam laporan (file xlsx)**.
 
 ---
 
