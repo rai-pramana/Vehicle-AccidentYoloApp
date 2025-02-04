@@ -223,8 +223,8 @@ def main():
                     "Detik": elapsed_time, 
                     "Timestamp": timestamp, 
                     "ID": tracker_id, 
-                    "Class": class_name, 
-                    "Speed": speed
+                    "Kelas": class_name, 
+                    "Kecepatan (km/h)": speed
                 })
 
             else:
@@ -236,8 +236,8 @@ def main():
                         "Detik": elapsed_time, 
                         "Timestamp": timestamp, 
                         "ID": tracker_id, 
-                        "Class": class_name, 
-                        "Speed": speed
+                        "Kelas": class_name, 
+                        "Kecepatan (km/h)": speed
                     })
 
                     if st.session_state.vehicle_accident_data:
@@ -251,7 +251,7 @@ def main():
                                 f"🔹 **Detik:** {latest_accident['Detik']:.0f}\n"
                                 f"🕒 **Timestamp:** {latest_accident['Timestamp'].strftime('%Y-%m-%d %H:%M:%S')}\n"
                                 f"🆔 **ID:** {latest_accident['ID']}\n"
-                                f"🚗 **Class:** {latest_accident['Class']}"
+                                f"🚗 **Kelas:** {latest_accident['Kelas']}"
                             )
 
                             # Tambahkan accident_message ke array dalam st.session_state
@@ -309,18 +309,18 @@ def main():
         st.session_state.last_frame = annotated_frame  # Simpan frame terakhir
 
         # Update real-time statistics
-        vehicle_stats_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Vehicle", "Count"])
-        accident_stats_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Accident", "Count"])
+        vehicle_stats_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Kelas", "Jumlah"])
+        accident_stats_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Kelas", "Jumlah"])
 
         # Filter DataFrame untuk menghapus baris dengan jumlah 0
-        vehicle_stats_df = vehicle_stats_df[vehicle_stats_df["Count"] > 0]
-        accident_stats_df = accident_stats_df[accident_stats_df["Count"] > 0]
+        vehicle_stats_df = vehicle_stats_df[vehicle_stats_df["Jumlah"] > 0]
+        accident_stats_df = accident_stats_df[accident_stats_df["Jumlah"] > 0]
 
         # Tampilkan grafik hanya jika ada data kendaraan
         if not vehicle_stats_df.empty:
             with vehicle_stats_placeholder.container():
                 st.subheader("Statistik Kendaraan")
-                fig_vehicle = px.bar(vehicle_stats_df, x="Count", y="Vehicle", orientation='h', title="Jumlah Kendaraan per Kelas")
+                fig_vehicle = px.bar(vehicle_stats_df, x="Jumlah", y="Kelas", orientation='h', title="Jumlah Kendaraan per Kelas")
                 st.plotly_chart(fig_vehicle, use_container_width=True, key=f"vehicle_stats_{plot_counter}")
                 plot_counter += 1  # Tingkatkan counter untuk key yang unik
 
@@ -328,7 +328,7 @@ def main():
         if not accident_stats_df.empty:
             with accident_stats_placeholder.container():
                 st.subheader("Statistik Kecelakaan")
-                fig_accident = px.bar(accident_stats_df, x="Count", y="Accident", orientation='h', title="Jumlah Kecelakaan per Kelas")
+                fig_accident = px.bar(accident_stats_df, x="Jumlah", y="Kelas", orientation='h', title="Jumlah Kecelakaan per Kelas")
                 st.plotly_chart(fig_accident, use_container_width=True, key=f"accident_stats_{plot_counter}")
                 plot_counter += 1  # Tingkatkan counter untuk key yang unik
 
@@ -337,16 +337,16 @@ def main():
             df = pd.DataFrame(st.session_state.vehicle_accident_data)
             
             # Filter hanya untuk kelas yang termasuk dalam vehicle_classes
-            df = df[df["Class"].isin(vehicle_classes)]
+            df = df[df["Kelas"].isin(vehicle_classes)]
             
             if not df.empty:  # Pastikan tidak membuat grafik jika tidak ada data kendaraan
                 # Hitung rata-rata kecepatan per kelas
-                avg_speed_df = df.groupby("Class")["Speed"].mean().reset_index()
-                avg_speed_df.columns = ["Class", "Average Speed"]
+                avg_speed_df = df.groupby("Kelas")["Kecepatan (km/h)"].mean().reset_index()
+                avg_speed_df.columns = ["Kelas", "Rata-Rata Kecepatan (km/h)"]
                 
                 # Buat grafik rata-rata kecepatan
                 fig_speed = px.bar(
-                    avg_speed_df, x="Average Speed", y="Class", 
+                    avg_speed_df, x="Rata-Rata Kecepatan (km/h)", y="Kelas", 
                     orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas"
                 )
                 
@@ -372,30 +372,35 @@ def main():
         all_classes = list(model.names.values())
 
         # Buat DataFrame untuk jumlah kendaraan dan kecelakaan
-        vehicle_count_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Class", "Count_vehicle"])
-        accident_count_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Class", "Count_accident"])
+        vehicle_count_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Kelas", "Count_vehicle"])
+        accident_count_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Kelas", "Count_accident"])
 
         # Gabungkan semua kelas kendaraan dan kecelakaan dengan nilai 0 untuk yang tidak terdeteksi
-        vehicle_count_df = vehicle_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
-        accident_count_df = accident_count_df.set_index("Class").reindex(all_classes, fill_value=0).reset_index()
+        vehicle_count_df = vehicle_count_df.set_index("Kelas").reindex(all_classes, fill_value=0).reset_index()
+        accident_count_df = accident_count_df.set_index("Kelas").reindex(all_classes, fill_value=0).reset_index()
 
         # Gabungkan DataFrame kendaraan dan kecelakaan
-        count_df = pd.merge(vehicle_count_df, accident_count_df, on="Class", how="outer", suffixes=("_vehicle", "_accident"))
+        count_df = pd.merge(vehicle_count_df, accident_count_df, on="Kelas", how="outer", suffixes=("_vehicle", "_accident"))
 
-        # Gabungkan kedua kolom Count menjadi satu kolom "Count"
-        count_df["Count"] = count_df["Count_vehicle"] + count_df["Count_accident"]
+        # Gabungkan kedua kolom Count menjadi satu kolom "Jumlah"
+        count_df["Jumlah"] = count_df["Count_vehicle"] + count_df["Count_accident"]
 
         # Drop kolom tambahan (Count_vehicle dan Count_accident)
         count_df = count_df.drop(columns=["Count_vehicle", "Count_accident"])
 
         # Hapus duplikasi jika ada
-        count_df = count_df.drop_duplicates(subset=["Class"])
+        count_df = count_df.drop_duplicates(subset=["Kelas"])
+
+        # Hitung rata-rata kecepatan per kelas dan gabungkan dengan count_df
+        avg_speed_df = vehicle_accident_df.groupby("Kelas")["Kecepatan (km/h)"].mean().reset_index()
+        avg_speed_df.columns = ["Kelas", "Rata-Rata Kecepatan (km/h)"]
+        count_df = pd.merge(count_df, avg_speed_df, on="Kelas", how="left")
 
         # Tulis kedua DataFrame ke dalam satu file Excel dengan dua sheet
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             vehicle_accident_df.to_excel(writer, index=False, sheet_name='Kejadian')
-            count_df.to_excel(writer, index=False, sheet_name='Jumlah Kelas')
+            count_df.to_excel(writer, index=False, sheet_name='Rangkuman')
         excel_data = output.getvalue()
 
         # Create a ZIP file containing both the video and Excel files
@@ -429,37 +434,37 @@ def main():
     if st.session_state.status == 'paused' and st.session_state.last_frame is not None:
         stframe.image(st.session_state.last_frame, channels="RGB")
 
-        vehicle_stats_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Vehicle", "Count"])
-        accident_stats_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Accident", "Count"])
+        vehicle_stats_df = pd.DataFrame(list(st.session_state.vehicle_count.items()), columns=["Kelas", "Jumlah"])
+        accident_stats_df = pd.DataFrame(list(st.session_state.accident_count.items()), columns=["Kelas", "Jumlah"])
 
         # Filter DataFrame untuk menghapus baris dengan jumlah 0
-        vehicle_stats_df = vehicle_stats_df[vehicle_stats_df["Count"] > 0]
-        accident_stats_df = accident_stats_df[accident_stats_df["Count"] > 0]
+        vehicle_stats_df = vehicle_stats_df[vehicle_stats_df["Jumlah"] > 0]
+        accident_stats_df = accident_stats_df[accident_stats_df["Jumlah"] > 0]
 
         with vehicle_stats_placeholder.container():
             st.subheader("Statistik Kendaraan")
-            fig_vehicle = px.bar(vehicle_stats_df, x="Count", y="Vehicle", orientation='h', title="Jumlah Kendaraan per Kelas")
+            fig_vehicle = px.bar(vehicle_stats_df, x="Jumlah", y="Kelas", orientation='h', title="Jumlah Kendaraan per Kelas")
             st.plotly_chart(fig_vehicle, use_container_width=True, key=f"vehicle_stats_{plot_counter}")
 
         with accident_stats_placeholder.container():
             st.subheader("Statistik Kecelakaan")
-            fig_accident = px.bar(accident_stats_df, x="Count", y="Accident", orientation='h', title="Jumlah Kecelakaan per Kelas")
+            fig_accident = px.bar(accident_stats_df, x="Jumlah", y="Kelas", orientation='h', title="Jumlah Kecelakaan per Kelas")
             st.plotly_chart(fig_accident, use_container_width=True, key=f"accident_stats_{plot_counter}")
 
         if st.session_state.vehicle_accident_data:
             df = pd.DataFrame(st.session_state.vehicle_accident_data)
             
             # Filter hanya untuk kelas yang termasuk dalam vehicle_classes
-            df = df[df["Class"].isin(vehicle_classes)]
+            df = df[df["Kelas"].isin(vehicle_classes)]
             
             if not df.empty:  # Pastikan tidak membuat grafik jika tidak ada data kendaraan
                 # Hitung rata-rata kecepatan per kelas
-                avg_speed_df = df.groupby("Class")["Speed"].mean().reset_index()
-                avg_speed_df.columns = ["Class", "Average Speed"]
+                avg_speed_df = df.groupby("Kelas")["Kecepatan (km/h)"].mean().reset_index()
+                avg_speed_df.columns = ["Kelas", "Rata-Rata Kecepatan (km/h)"]
                 
                 # Buat grafik rata-rata kecepatan
                 fig_speed = px.bar(
-                    avg_speed_df, x="Average Speed", y="Class", 
+                    avg_speed_df, x="Rata-Rata Kecepatan (km/h)", y="Kelas", 
                     orientation='h', title="Rata-rata Kecepatan Kendaraan per Kelas"
                 )
                 
