@@ -81,7 +81,7 @@ def main():
             st.session_state.notified_accident_ids = set()
         
         # Tombol kontrol
-        if st.sidebar.button("Start/Reset"):
+        if st.sidebar.button("Mulai/Ulang"):
             st.session_state.status = 'running'
             st.session_state.frame_index = 0
             st.session_state.vehicle_count = defaultdict(int)
@@ -92,9 +92,9 @@ def main():
             st.session_state.annotated_frames = []
             st.session_state.accident_messages = []
             st.session_state.notified_accident_ids = set()
-        if st.sidebar.button("Continue"):
+        if st.sidebar.button("Lanjut"):
             st.session_state.status = 'running'
-        if st.sidebar.button("Pause"):
+        if st.sidebar.button("Jeda"):
             st.session_state.status = 'paused'
 
         # Input untuk Target Width dan Height

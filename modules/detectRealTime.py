@@ -78,11 +78,11 @@ def main():
         st.session_state.notified_accident_ids = set()
     
     # Tombol kontrol
-    if st.sidebar.button("Start"):
+    if st.sidebar.button("Mulai"):
         st.session_state.status = 'running'
-    if st.sidebar.button("Pause"):
+    if st.sidebar.button("Jeda"):
         st.session_state.status = 'paused'
-    if st.sidebar.button("Stop"):
+    if st.sidebar.button("Berhenti"):
         st.session_state.status = 'stopped'
 
     # Input untuk Target Width dan Height
