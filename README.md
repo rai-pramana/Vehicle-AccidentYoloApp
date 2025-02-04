@@ -124,7 +124,7 @@ Proyek ini menggunakan lisensi **MIT License**. Silakan gunakan dan kembangkan s
 Jika ada pertanyaan atau kendala, silakan hubungi:
 
 -   **GitHub**: [Vehicle-AccidentYoloApp](https://github.com/rai-pramana/Vehicle-AccidentYoloApp)
--   **Email**: rai.pramana46@gmail.com
+-   **Email**: [Email Rai Pramana](rai.pramana46@gmail.com)
 
 ---
 
