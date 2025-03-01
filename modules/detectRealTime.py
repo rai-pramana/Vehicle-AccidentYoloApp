@@ -92,20 +92,24 @@ def main():
     # Dropdown untuk memilih lokasi
     location = st.sidebar.selectbox(
         "Location",
-        ["Simpang Pidada", "Custom"]
+        ["Simpang Pidada", "Batubulan", "Fullscreen 360p", "Custom"]
     )
 
     # Tentukan koordinat berdasarkan lokasi yang dipilih
     if location == "Simpang Pidada":
         source_coordinates = "290,197;516,211;484,358;100,333"
+    elif location == "Batubulan":
+        source_coordinates = "310,52;406,45;544,342;315,358"
     elif location == "Custom":
         source_coordinates = st.sidebar.text_input(
             "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
             value="",
             placeholder="Enter custom coordinates"
         )
+    elif location == "Fullscreen 360p":
+        source_coordinates = "0,0;640,0;640,360;0,360"
     else:
-        source_coordinates = ""
+        source_coordinates = "0,0;640,0;640,360;0,360"
 
     # Tampilkan koordinat yang dipilih
     if location != "Custom":
