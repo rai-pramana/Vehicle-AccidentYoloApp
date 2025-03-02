@@ -98,13 +98,13 @@ def main():
             st.session_state.status = 'paused'
 
         # Input untuk Target Width dan Height
-        target_width = st.sidebar.number_input("Target Width (meter)", min_value=1.0, max_value=100.0, value=13.56, step=0.01)
-        target_height = st.sidebar.number_input("Target Height (meter)", min_value=1.0, max_value=500.0, value=20.95, step=0.01)
+        target_width = st.sidebar.number_input("Lebar Target (meter)", min_value=1.0, max_value=100.0, value=13.56, step=0.01)
+        target_height = st.sidebar.number_input("Panjang Target (meter)", min_value=1.0, max_value=500.0, value=20.95, step=0.01)
 
         # Dropdown untuk memilih lokasi
         location = st.sidebar.selectbox(
-            "Location",
-            ["Simpang Pidada", "Batubulan", "Fullscreen 720p", "Custom"]
+            "Lokasi",
+            ["Simpang Pidada", "Batubulan", "Fullscreen 720p", "Kustom"]
         )
 
         # Tentukan koordinat berdasarkan lokasi yang dipilih
@@ -112,11 +112,11 @@ def main():
             source_coordinates = "550,394;1032,423;968,717;130,666"
         elif location == "Batubulan":
             source_coordinates = "620,104;812,90;1089,684;630,716"
-        elif location == "Custom":
+        elif location == "Kustom":
             source_coordinates = st.sidebar.text_input(
-                "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
+                "Koordinat Sumber (format: x1,y1;x2,y2;x3,y3;x4,y4)",
                 value="",
-                placeholder="Enter custom coordinates"
+                placeholder="Masukkan koordinat kustom"
             )
         elif location == "Fullscreen 720p":
             source_coordinates = "0,0;1280,0;1280,720;0,720"
@@ -124,9 +124,9 @@ def main():
             source_coordinates = "0,0;1280,0;1280,720;0,720"
 
         # Tampilkan koordinat yang dipilih
-        if location != "Custom":
+        if location != "Kustom":
             st.sidebar.text_input(
-                "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
+                "Koordinat Sumber (format: x1,y1;x2,y2;x3,y3;x4,y4)",
                 value=source_coordinates,
                 disabled=True
             )
@@ -408,9 +408,10 @@ def main():
                 count_df = count_df.drop_duplicates(subset=["Kelas"])
 
                 # Hitung rata-rata kecepatan per kelas dan gabungkan dengan count_df
-                avg_speed_df = vehicle_accident_df.groupby("Kelas")["Kecepatan (km/h)"].mean().reset_index()
-                avg_speed_df.columns = ["Kelas", "Rata-Rata Kecepatan (km/h)"]
-                count_df = pd.merge(count_df, avg_speed_df, on="Kelas", how="left")
+                if "Kelas" in vehicle_accident_df.columns:
+                    avg_speed_df = vehicle_accident_df.groupby("Kelas")["Kecepatan (km/h)"].mean().reset_index()
+                    avg_speed_df.columns = ["Kelas", "Rata-Rata Kecepatan (km/h)"]
+                    count_df = pd.merge(count_df, avg_speed_df, on="Kelas", how="left")
                 
                 # Tulis kedua DataFrame ke dalam satu file Excel dengan dua sheet
                 output = BytesIO()
