@@ -78,14 +78,14 @@ def main():
         st.image(annotated_image, channels="RGB")
 
         # Statistik deteksi
-        class_counts = pd.DataFrame(detections.class_id, columns=["Class"])
-        class_counts["Class"] = class_counts["Class"].map(model.names)
-        counts_df = class_counts["Class"].value_counts().reset_index()
-        counts_df.columns = ["Class", "Count"]
+        class_counts = pd.DataFrame(detections.class_id, columns=["Kelas"])
+        class_counts["Kelas"] = class_counts["Kelas"].map(model.names)
+        counts_df = class_counts["Kelas"].value_counts().reset_index()
+        counts_df.columns = ["Kelas", "Jumlah"]
 
         # Tampilkan grafik
         st.subheader("Grafik Jumlah Objek Terdeteksi")
-        fig = px.bar(counts_df, x="Count", y="Class", orientation='h', title="Jumlah Deteksi per Kelas")
+        fig = px.bar(counts_df, x="Jumlah", y="Kelas", orientation='h', title="Jumlah Deteksi per Kelas")
         st.plotly_chart(fig)
 
         # Simpan gambar hasil untuk unduhan
