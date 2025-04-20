@@ -113,6 +113,24 @@ Aplikasi ini **di-deploy secara lokal** karena menjalankan model deteksi kendara
 
 ---
 
+## 📷 Screenshot
+
+Berikut adalah tampilan aplikasi:
+
+### **Fitur Deteksi Gambar**
+
+![Fitur Deteksi Gambar](assets/Screenshot%20Fitur%20Deteksi%20Gambar.png)
+
+### **Fitur Deteksi Video**
+
+![Fitur Deteksi Video](assets/Screenshot%20Fitur%20Deteksi%20Video.png)
+
+### **Fitur Deteksi Real-Time**
+
+![Fitur Deteksi Real-Time](assets/Screenshot%20Fitur%20Deteksi%20Real-Time.png)
+
+---
+
 ## 📜 Lisensi
 
 Proyek ini menggunakan lisensi **MIT License**. Silakan gunakan dan kembangkan sesuai kebutuhan.
