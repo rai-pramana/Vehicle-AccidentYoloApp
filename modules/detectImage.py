@@ -11,7 +11,7 @@ import torch
 from PIL import Image
 
 def main():
-    st.title("Deteksi Objek pada Gambar")
+    st.title("Deteksi Kendaraan dan Kecelakaan - Gambar")
 
     # Sidebar - Input Model
     st.sidebar.header("Pengaturan")

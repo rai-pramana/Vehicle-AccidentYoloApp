@@ -16,7 +16,7 @@ from utils.detect import process_frame
 
 def main():
     # Streamlit UI
-    st.title("Deteksi Kendaraan dan Estimasi Kecepatan - Webcam")
+    st.title("Deteksi Kendaraan dan Kecelakaan - Webcam")
 
     # Dapatkan daftar model yang tersedia di folder 'models/'
     current_dir = os.path.dirname(os.path.abspath(__file__))
