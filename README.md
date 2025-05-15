@@ -1,16 +1,16 @@
 # Vehicle-AccidentYoloApp
 
-## 🚗 Tentang Proyek
+## 🚗 About the Project
 
-**Vehicle-AccidentYoloApp** adalah aplikasi berbasis **YOLO** yang digunakan untuk **deteksi kendaraan dan kecelakaan** dari video atau secara **real-time**. Aplikasi ini dapat mengidentifikasi berbagai jenis kendaraan, menghitung kecepatan kendaraan, serta memberikan peringatan ketika terjadi kecelakaan.
+**Vehicle-AccidentYoloApp** is a **YOLO-based application** used for **vehicle and accident detection** from video or in **real-time**. This application can identify various types of vehicles, calculate vehicle speed, and provide alerts when an accident is detected.
 
-Proyek ini dideploy secara **lokal** pada perangkat pengguna untuk menghindari biaya tinggi dalam menyewa sumber daya GPU secara online.
+This project is deployed **locally** on the user's device to avoid high costs of renting online GPU resources.
 
 ---
 
-## 🖥️ Persyaratan Sistem
+## 🖥️ System Requirements
 
-Untuk menjalankan aplikasi ini dengan optimal, spesifikasi perangkat yang disarankan adalah:
+To run this application optimally, the recommended device specifications are:
 
 ### **Hardware:**
 
@@ -18,13 +18,13 @@ Untuk menjalankan aplikasi ini dengan optimal, spesifikasi perangkat yang disara
 -   **GPU**: NVIDIA GeForce RTX 3060 (8GB GDDR6, CUDA Core 3584)
 -   **RAM**: 16GB (Dual Channel, 3200MHz)
 -   **Storage**: SSD NVMe 500GB (PCIe Gen 3x4)
--   **OS**: Windows 11 (versi 24H2)
+-   **OS**: Windows 11 (version 24H2)
 
 ### **Software & Library:**
 
 -   **Python**: 3.12.7
--   **Code Editor**: Visual Studio Code (versi 1.96.4)
--   **Library yang diperlukan:**
+-   **Code Editor**: Visual Studio Code (version 1.96.4)
+-   **Required libraries:**
     -   NumPy (2.2.2)
     -   OpenCV (4.10.0.84)
     -   Pandas (2.2.3)
@@ -37,23 +37,23 @@ Untuk menjalankan aplikasi ini dengan optimal, spesifikasi perangkat yang disara
 
 ---
 
-## 📦 Instalasi
+## 📦 Installation
 
-Ikuti langkah-langkah berikut untuk menginstal dan menjalankan aplikasi:
+Follow these steps to install and run the application:
 
-### **1. Clone Repository**
+### **1. Clone the Repository**
 
 ```sh
 git clone https://github.com/rai-pramana/Vehicle-AccidentYoloApp.git
 cd Vehicle-AccidentYoloApp
 ```
 
-### **2. Buat Virtual Environment (Opsional, tapi disarankan)**
+### **2. Create a Virtual Environment (Optional, but recommended)**
 
 ```sh
 python -m venv venv
-source venv/bin/activate  # Untuk Linux/Mac
-venv\Scripts\activate  # Untuk Windows
+source venv/bin/activate  # For Linux/Mac
+venv\Scripts\activate  # For Windows
 ```
 
 ### **3. Install Dependencies**
@@ -62,7 +62,7 @@ venv\Scripts\activate  # Untuk Windows
 pip install -r requirements.txt
 ```
 
-Atau bisa diinstal satu per satu:
+Or install them one by one:
 
 ```sh
 pip install numpy opencv-python pandas pillow plotly streamlit supervision torch ultralytics
@@ -70,80 +70,80 @@ pip install numpy opencv-python pandas pillow plotly streamlit supervision torch
 
 ### **4. Install CUDA**
 
-Untuk instalasi NVIDIA CUDA, silahkan ikuti tutorial berikut [Setup-NVIDIA-GPU-for-Deep-Learning](https://github.com/entbappy/Setup-NVIDIA-GPU-for-Deep-Learning)
+For NVIDIA CUDA installation, please follow this tutorial: [Setup-NVIDIA-GPU-for-Deep-Learning](https://github.com/entbappy/Setup-NVIDIA-GPU-for-Deep-Learning)
 
-### **5. Jalankan Aplikasi**
+### **5. Run the Application**
 
 ```sh
 streamlit run app.py
 ```
 
-Akses aplikasi melalui browser di **http://localhost:8501**.
+Access the application via browser at **http://localhost:8501**.
 
 ---
 
-## 🔧 Cara Penggunaan
+## 🔧 How to Use
 
-1. **Pilih mode deteksi**:
-    - **Deteksi Gambar**: Memproses inputan gambar.
-    - **Deteksi Video**: Memproses semua frame dari video input untuk mendapatkan hasil yang lebih akurat.
-    - **Deteksi Real-Time**: Menggunakan screen record (OBS Virtual Camera) untuk deteksi langsung dengan FPS terbatas berdasarkan kemampuan perangkat.
-2. **Input gambar, video atau nyalakan webcam**.
-3. **Aplikasi akan menampilkan hasil deteksi, kecepatan kendaraan (Deteksi Video atau Real-Time), dan peringatan kecelakaan (Deteksi Video atau Real-Time)** jika terdeteksi.
-4. **Data kecepatan dan kecelakaan akan dicatat dalam laporan (file xlsx)**.
-
----
-
-## ⚡ Perbedaan Fitur Deteksi Video vs. Real-Time
-
--   **Deteksi Video**:
-    -   Memproses semua frame dalam video.
-    -   Lebih akurat dalam estimasi kecepatan.
-    -   Waktu pemrosesan lebih lama.
--   **Deteksi Real-Time**:
-    -   Memproses lebih sedikit frame (pada perangkat ini hanya 8.3 FPS).
-    -   Lebih cepat karena ada frame skipping.
-    -   Akurasi estimasi kecepatan lebih rendah dibanding deteksi video.
+1. **Select detection mode**:
+    - **Image Detection**: Processes image input.
+    - **Video Detection**: Processes all frames from the input video for more accurate results.
+    - **Real-Time Detection**: Uses screen recording (OBS Virtual Camera) for live detection with limited FPS based on device capability.
+2. **Input an image, video, or turn on the webcam**.
+3. **The application will display detection results, vehicle speed (Video or Real-Time Detection), and accident alerts (Video or Real-Time Detection)** if detected.
+4. **Speed and accident data will be recorded in a report (xlsx file)**.
 
 ---
 
-## 📌 Catatan
+## ⚡ Feature Differences: Video vs. Real-Time Detection
 
-Aplikasi ini **di-deploy secara lokal** karena menjalankan model deteksi kendaraan dan kecelakaan membutuhkan **sumber daya GPU** yang tinggi, yang jika dilakukan secara online akan memerlukan biaya besar.
+-   **Video Detection**:
+    -   Processes all frames in the video.
+    -   More accurate speed estimation.
+    -   Longer processing time.
+-   **Real-Time Detection**:
+    -   Processes fewer frames (on this device only 11.364 FPS).
+    -   Faster due to frame skipping.
+    -   Speed estimation accuracy is lower compared to video detection.
+
+---
+
+## 📌 Notes
+
+This application is **deployed locally** because running vehicle and accident detection models requires **high GPU resources**, which would be expensive if done online.
 
 ---
 
 ## 📷 Screenshot
 
-Berikut adalah tampilan aplikasi:
+Here is the application interface:
 
-### **Fitur Deteksi Gambar**
+### **Image Detection Feature**
 
-![Fitur Deteksi Gambar](assets/Screenshot%20Fitur%20Deteksi%20Gambar.png)
+![Image Detection Feature](assets/Screenshot%20Fitur%20Deteksi%20Gambar.png)
 
-### **Fitur Deteksi Video**
+### **Video Detection Feature**
 
-![Fitur Deteksi Video](assets/Screenshot%20Fitur%20Deteksi%20Video.png)
+![Video Detection Feature](assets/Screenshot%20Fitur%20Deteksi%20Video.png)
 
-### **Fitur Deteksi Real-Time**
+### **Real-Time Detection Feature**
 
-![Fitur Deteksi Real-Time](assets/Screenshot%20Fitur%20Deteksi%20Real-Time.png)
-
----
-
-## 📜 Lisensi
-
-Proyek ini menggunakan lisensi **MIT License**. Silakan gunakan dan kembangkan sesuai kebutuhan.
+![Real-Time Detection Feature](assets/Screenshot%20Fitur%20Deteksi%20Real-Time.png)
 
 ---
 
-## 📬 Kontak
+## 📜 License
 
-Jika ada pertanyaan atau kendala, silakan hubungi:
+This project uses the **MIT License**. Please use and develop as needed.
+
+---
+
+## 📬 Contact
+
+If you have questions or issues, please contact:
 
 -   **GitHub**: [Vehicle-AccidentYoloApp](https://github.com/rai-pramana/Vehicle-AccidentYoloApp)
 -   **Email**: rai.pramana46@gmail.com
 
 ---
 
-🚀 Selamat mencoba! Semoga aplikasi ini bermanfaat untuk deteksi kendaraan dan kecelakaan secara efektif. 😊
+🚀 Happy trying! Hopefully, this application is useful for effective vehicle and accident detection. 😊

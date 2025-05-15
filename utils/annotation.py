@@ -17,7 +17,7 @@ def add_annotations(annotated_frame, vehicle_classes, thickness, text_scale, fra
     cv2.rectangle(annotated_frame, (10, y_offset - text_height - baseline), (10 + text_width, y_offset + baseline), (0, 0, 0), cv2.FILLED)
     cv2.putText(annotated_frame, text, (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, text_scale, (255, 255, 255), thickness, cv2.LINE_AA)
 
-    # Tambahkan anotasi teks untuk timestamp
+    # Add text annotations for timestamps
     timestamp_text = current_time.strftime("%d-%m-%Y %H:%M:%S")
     (text_width, text_height), baseline = cv2.getTextSize(timestamp_text, cv2.FONT_HERSHEY_SIMPLEX, text_scale, thickness)
     cv2.rectangle(annotated_frame, (10, y_offset + int(20 * frame_height / 360) - text_height - baseline), (10 + text_width, y_offset + int(20 * frame_height / 360) + baseline), (0, 0, 0), cv2.FILLED)

@@ -16,80 +16,80 @@ from utils.detect import process_frame
 
 def main():
     # Streamlit UI
-    st.title("Deteksi Kendaraan dan Kecelakaan - Video")
+    st.title("Vehicle and Accident Detection - Video")
 
-    # Dapatkan daftar model yang tersedia di folder 'models/'
+    # Sidebar input
+    st.sidebar.header("Input Settings")
+
+    # Get list of models available in the 'models/' folder
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
     model_path = os.path.join(current_dir, '..', 'models')
     model_files = [f for f in os.listdir(model_path) if f.endswith('.pt')]
-    selected_model = st.sidebar.selectbox("Pilih Model", model_files)
-
-    # Input sidebar
-    st.sidebar.header("Pengaturan Input")
+    selected_model = st.sidebar.selectbox("Select Model", model_files)
 
     # Upload video
     uploaded_video = st.sidebar.file_uploader("Upload Video", type=["mp4", "avi", "mov", "mkv"])
 
     if uploaded_video is not None:
-        stframe = st.empty()  # Tempat untuk menampilkan frame
-        vehicle_stats_placeholder = st.empty()  # Placeholder untuk statistik kendaraan
-        vehicle_speed_placeholder = st.empty()  # Placeholder untuk grafik kecepatan kendaraan
-        accident_stats_placeholder = st.empty()  # Placeholder untuk statistik kecelakaan
-        
+        stframe = st.empty()  # Place to display the frame
+        vehicle_stats_placeholder = st.empty()  # Placeholder for vehicle statistics
+        vehicle_speed_placeholder = st.empty()  # Placeholder for vehicle speed chart
+        accident_stats_placeholder = st.empty()  # Placeholder for accident statistics
+
         if 'last_uploaded_video' not in st.session_state or st.session_state.last_uploaded_video != uploaded_video:
-            # Reset state jika video baru diunggah
+            # Reset state if a new video is uploaded
             st.session_state.status = 'paused'
             reset_state()
 
-            # Simpan video yang baru diunggah
+            # Save the newly uploaded video
             st.session_state.last_uploaded_video = uploaded_video
 
-        # Tombol kontrol
+        # Control buttons
         if 'status' not in st.session_state:
             st.session_state.status = 'paused'
         
         init_state()
-        
-        # Tombol kontrol
-        if st.sidebar.button("Mulai/Ulang"):
+
+        # Control buttons
+        if st.sidebar.button("Start/Restart"):
             st.session_state.status = 'running'
             reset_state()
-        if st.sidebar.button("Lanjut"):
+        if st.sidebar.button("Continue"):
             st.session_state.status = 'running'
-        if st.sidebar.button("Jeda"):
+        if st.sidebar.button("Pause"):
             st.session_state.status = 'paused'
 
-        # Input untuk Target Width dan Height
-        target_width = st.sidebar.number_input("Lebar Target (meter)", min_value=1.0, max_value=100.0, value=13.56, step=0.01)
-        target_height = st.sidebar.number_input("Panjang Target (meter)", min_value=1.0, max_value=500.0, value=20.95, step=0.01)
+        # Input for Target Width and Height
+        target_width = st.sidebar.number_input("Target Width (meter)", min_value=1.0, max_value=100.0, value=13.56, step=0.01)
+        target_height = st.sidebar.number_input("Target Height (meter)", min_value=1.0, max_value=500.0, value=20.95, step=0.01)
 
-        # Dropdown untuk memilih lokasi
+        # Dropdown for selecting location
         location = st.sidebar.selectbox(
-            "Lokasi",
-            ["Simpang Pidada", "Batubulan", "Fullscreen 720p", "Kustom"]
+            "Location",
+            ["Simpang Pidada", "Batubulan", "Fullscreen 720p", "Custom"]
         )
 
-        # Tentukan koordinat berdasarkan lokasi yang dipilih
+        # Specify coordinates based on the selected location
         if location == "Simpang Pidada":
             source_coordinates = "550,394;1032,423;968,717;130,666"
         elif location == "Batubulan":
             source_coordinates = "620,104;812,90;1089,684;630,716"
-        elif location == "Kustom":
+        elif location == "Custom":
             source_coordinates = st.sidebar.text_input(
-                "Koordinat Sumber (format: x1,y1;x2,y2;x3,y3;x4,y4)",
+                "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
                 value="",
-                placeholder="Masukkan koordinat kustom"
+                placeholder="Enter custom coordinates"
             )
         elif location == "Fullscreen 720p":
             source_coordinates = "0,0;1280,0;1280,720;0,720"
         else:
             source_coordinates = "0,0;1280,0;1280,720;0,720"
 
-        # Tampilkan koordinat yang dipilih
-        if location != "Kustom":
+        # Display selected coordinates
+        if location != "Custom":
             st.sidebar.text_input(
-                "Koordinat Sumber (format: x1,y1;x2,y2;x3,y3;x4,y4)",
+                "Source Coordinates (format: x1,y1;x2,y2;x3,y3;x4,y4)",
                 value=source_coordinates,
                 disabled=True
             )
@@ -98,18 +98,18 @@ def main():
         SOURCE = parse_coordinates(source_coordinates)
         TARGET = np.array([[0, 0], [target_width - 1, 0], [target_width - 1, target_height - 1], [0, target_height - 1]])
 
-        # Confidence dan IoU Threshold
+        # Confidence and IoU Threshold
         confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.0, 1.0, 0.3, 0.05)
         iou_threshold = st.sidebar.slider("IoU Threshold", 0.0, 1.0, 0.7, 0.05)
 
-        # Input untuk waktu mulai video
-        start_time_str = st.sidebar.text_input("Waktu Mulai Video (dd-mm-yyyy hh:mm:ss)", value="27-06-2023 06:40:10")
+        # Input for video start time
+        start_time_str = st.sidebar.text_input("Video Start Time (dd-mm-yyyy hh:mm:ss)", value="27-06-2023 06:40:10")
 
-        # Parse waktu mulai video
+        # Parse video start time
         try:
             start_time = datetime.strptime(start_time_str, "%d-%m-%Y %H:%M:%S")
         except ValueError:
-            st.error("Format waktu tidak valid. Gunakan format: dd-mm-yyyy hh:mm:ss")
+            st.error("Invalid time format. Use format: dd-mm-yyyy hh:mm:ss")
             start_time = None
 
         if SOURCE is not None and start_time is not None:
@@ -123,7 +123,7 @@ def main():
 
             model, byte_track, box_annotator, label_annotator, trace_annotator, polygon_zone, view_transformer, coordinates, vehicle_classes, accident_classes, thickness, text_scale = load_model_and_initialize_components(model_path, selected_model, resolution_wh, confidence_threshold, SOURCE, TARGET, FPS)
 
-            plot_counter = 0  # Counter untuk key yang unik
+            plot_counter = 0  # Counter for unique keys
 
             frames = list(sv.get_video_frames_generator(source_path=tfile.name))
 
@@ -169,11 +169,11 @@ def main():
             
             st.session_state.status == 'paused'
 
-            # Simpan file video dan Excel dan sediakan tombol unduh untuk file ZIP
+            # Save video and xlsx files and provide a download button for ZIP files
             if st.session_state.annotated_frames:
                 save_and_provide_download_button(current_dir, FPS, model)
 
-        # Tampilkan frame terakhir dan grafik saat status 'paused'
+        # Display last frame and chart when status 'paused'
         if st.session_state.status == 'paused' and st.session_state.last_frame is not None:
             stframe.image(st.session_state.last_frame, channels="RGB")
 
@@ -184,7 +184,7 @@ def main():
                 plot_counter, 
                 vehicle_classes
             )
-            
-            # Tampilkan semua accident_messages yang disimpan dalam st.session_state
+
+            # Display all accident_messages stored in st.session_state
             for message in st.session_state.accident_messages:
                 st.error(message)

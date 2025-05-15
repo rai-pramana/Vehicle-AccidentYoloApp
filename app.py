@@ -1,37 +1,37 @@
 import streamlit as st
 from modules import detectImage, detectVideo, detectRealTime
 
-# Fungsi untuk membersihkan session state
+# Function to clear session state
 def reset_session_state():
     st.session_state.clear()
 
 st.set_page_config(
-    page_title="Aplikasi Deteksi Kendaraan dan Kecelakaan",
+    page_title="Vehicle and Accident Detection App",
     page_icon="🚗",
     layout="centered",
     initial_sidebar_state="auto"
 )
 
-# Sidebar navigasi
-st.sidebar.title("Navigasi")
+# Sidebar navigation
+st.sidebar.title("Navigation")
 page = st.sidebar.selectbox(
-    "Pilih Mode Deteksi",
-    ["Deteksi Gambar", "Deteksi Video", "Deteksi Real-Time"],
+    "Select Detection Mode",
+    ["Image Detection", "Video Detection", "Real-Time Detection"],
     key="current_page"
 )
 
-# Deteksi perubahan halaman
+# Detect changes in page
 if "last_page" not in st.session_state:
-    st.session_state.last_page = page  # Inisialisasi halaman awal
+    st.session_state.last_page = page  # Initialize first page
 
 if st.session_state.last_page != page:
-    reset_session_state()  # Bersihkan session state jika halaman berubah
-    st.session_state.last_page = page  # Perbarui halaman terakhir
+    reset_session_state()  # Clear session state if page changes
+    st.session_state.last_page = page  # Update last page
 
-# Logika untuk menampilkan halaman sesuai pilihan
-if page == "Deteksi Gambar":
-    detectImage.main()  # Panggil fungsi utama dari modul detectImage
-elif page == "Deteksi Video":
-    detectVideo.main()  # Panggil fungsi utama dari modul detectVideo
-elif page == "Deteksi Real-Time":
-    detectRealTime.main()  # Panggil fungsi utama dari modul detectRealTime
+# Logic to display page according to selection
+if page == "Image Detection":
+    detectImage.main()  # Call main function from detectImage module
+elif page == "Video Detection":
+    detectVideo.main()  # Call main function from detectVideo module
+elif page == "Real-Time Detection":
+    detectRealTime.main()  # Call main function from detectRealTime module

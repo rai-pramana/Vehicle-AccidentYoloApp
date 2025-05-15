@@ -11,33 +11,34 @@ import torch
 from PIL import Image
 
 def main():
-    st.title("Deteksi Kendaraan dan Kecelakaan - Gambar")
+    st.title("Vehicle and Accident Detection - Image")
 
-    # Sidebar - Input Model
-    st.sidebar.header("Pengaturan")
-    model_path = "models"  # Pastikan folder model tersedia
+    # Sidebar - Model Input
+    st.sidebar.header("Input Settings")
+
+    model_path = "models"  # Ensure model folder is available
     model_files = [f for f in os.listdir(model_path) if f.endswith('.pt')]
-    selected_model = st.sidebar.selectbox("Pilih Model", model_files)
+    selected_model = st.sidebar.selectbox("Select Model", model_files)
 
-    # Sidebar - Confidence dan IoU Threshold
+    # Sidebar - Confidence and IoU Threshold
     confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.0, 1.0, 0.3, 0.05)
     iou_threshold = st.sidebar.slider("IoU Threshold", 0.0, 1.0, 0.7, 0.05)
 
-    # Sidebar - Upload Gambar
-    uploaded_image = st.sidebar.file_uploader("Upload Gambar", type=["jpg", "jpeg", "png"])
+    # Sidebar - Upload Image
+    uploaded_image = st.sidebar.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
 
     if uploaded_image:
-        # Tampilkan gambar yang diunggah
-        st.subheader("Gambar Asli")
+        # Show uploaded image
+        st.subheader("Original Image")
         file_bytes = np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8)
         image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         st.image(image, channels="BGR")
 
-        # Convert gambar ke grayscale untuk deteksi
+        # Convert image to grayscale for detection
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        # Konversi grayscale ke RGB (salin channel grayscale ke 3 channel)
+        # Convert grayscale to RGB (copy grayscale channel to 3 channels)
         gray_image_rgb = cv2.cvtColor(gray_image, cv2.COLOR_GRAY2RGB)
 
         height, width, _ = image.shape
@@ -47,7 +48,7 @@ def main():
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model = YOLO(f'{model_path}/{selected_model}').to(device)
 
-        # Deteksi objek pada gambar grayscale yang sudah dikonversi ke RGB
+        # Detect objects in the grayscale image converted to RGB
         results = model(gray_image_rgb)[0]
         detections = sv.Detections.from_ultralytics(results)
         detections = detections[detections.confidence > confidence_threshold]
@@ -56,13 +57,13 @@ def main():
         thickness = sv.calculate_optimal_line_thickness(resolution_wh)
         text_scale = sv.calculate_optimal_text_scale(resolution_wh)
 
-        # Tambahkan label berdasarkan nama kelas
+        # Add labels based on class names
         labels = [
             f"{model.names[class_id]} ({confidence:.2f})"
             for class_id, confidence in zip(detections.class_id, detections.confidence)
         ]
 
-        # Tambahkan anotasi pada gambar berwarna
+        # Add annotations to the colored image
         box_annotator = sv.BoxAnnotator(thickness=thickness)
         label_annotator = sv.LabelAnnotator(
             text_scale=text_scale,
@@ -73,33 +74,33 @@ def main():
         annotated_image = box_annotator.annotate(scene=image_rgb.copy(), detections=detections)
         annotated_image = label_annotator.annotate(scene=annotated_image, detections=detections, labels=labels)
 
-        # Tampilkan gambar hasil anotasi
-        st.subheader("Gambar dengan Anotasi")
+        # Show annotated image
+        st.subheader("Annotated Image")
         st.image(annotated_image, channels="RGB")
 
-        # Statistik deteksi
-        class_counts = pd.DataFrame(detections.class_id, columns=["Kelas"])
-        class_counts["Kelas"] = class_counts["Kelas"].map(model.names)
-        counts_df = class_counts["Kelas"].value_counts().reset_index()
-        counts_df.columns = ["Kelas", "Jumlah"]
+        # Detection statistics
+        class_counts = pd.DataFrame(detections.class_id, columns=["Class"])
+        class_counts["Class"] = class_counts["Class"].map(model.names)
+        counts_df = class_counts["Class"].value_counts().reset_index()
+        counts_df.columns = ["Class", "Count"]
 
-        # Tampilkan grafik
-        st.subheader("Grafik Jumlah Objek Terdeteksi")
-        fig = px.bar(counts_df, x="Jumlah", y="Kelas", orientation='h', title="Jumlah Deteksi per Kelas")
+        # Show chart
+        st.subheader("Graph of Number of Detected Objects")
+        fig = px.bar(counts_df, x="Count", y="Class", orientation='h', title="Count of Detections per Class")
         st.plotly_chart(fig)
 
-        # Simpan gambar hasil untuk unduhan
+        # Save the result image for download
         # Convert to PIL Image (RGB)
         pil_image = Image.fromarray(annotated_image)
 
-        # Simpan gambar ke buffer dalam format JPEG
+        # Save image to buffer in JPEG format
         buffer = BytesIO()
         pil_image.save(buffer, format="JPEG")
         buffer.seek(0)
 
-        # Tombol unduh di sidebar
+        # Download button in sidebar
         st.sidebar.download_button(
-            label="Download Gambar Hasil",
+            label="Download Result Image",
             data=buffer,
             file_name="annotated_image.jpg",
             mime="image/jpeg"

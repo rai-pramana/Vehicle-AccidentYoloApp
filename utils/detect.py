@@ -9,34 +9,34 @@ def process_accident_detection(tracker_id, class_name, elapsed_time, timestamp):
     speed = None
 
     st.session_state.vehicle_accident_data.append({
-        "Detik": elapsed_time, 
+        "Sec": elapsed_time, 
         "Timestamp": timestamp, 
         "ID": tracker_id, 
-        "Kelas": class_name, 
-        "Kecepatan (km/h)": speed
+        "Class": class_name, 
+        "Speed (km/h)": speed
     })
 
     if st.session_state.vehicle_accident_data:
-        latest_accident = st.session_state.vehicle_accident_data[-1]  # Ambil data kecelakaan terbaru (elemen terakhir)
+        latest_accident = st.session_state.vehicle_accident_data[-1]  # Retrieve the latest accident data (last element)
 
-        # Periksa apakah tracker_id sudah ada dalam notified_accident_ids
+        # Check if tracker_id is already in notified_accident_ids
         if tracker_id not in st.session_state.notified_accident_ids:
-            # Format pesan notifikasi
+            # Format notification message
             accident_message = (
-                f"🚨 **Kecelakaan Terdeteksi!**\n\n"
-                f"🔹 **Detik:** {latest_accident['Detik']:.0f}\n"
+                f"🚨 **Accident Detected!**\n\n"
+                f"🔹 **Sec:** {latest_accident['Sec']:.0f}\n"
                 f"🕒 **Timestamp:** {latest_accident['Timestamp'].strftime('%Y-%m-%d %H:%M:%S')}\n"
                 f"🆔 **ID:** {latest_accident['ID']}\n"
-                f"🚗 **Kelas:** {latest_accident['Kelas']}"
+                f"🚗 **Class:** {latest_accident['Class']}"
             )
 
-            # Tambahkan accident_message ke array dalam st.session_state
+            # Add accident_message to array in st.session_state
             st.session_state.accident_messages.append(accident_message)
 
-            # Tambahkan tracker_id ke notified_accident_ids
+            # Add tracker_id to notified_accident_ids
             st.session_state.notified_accident_ids.add(tracker_id)
 
-            # Tampilkan notifikasi kecelakaan
+            # Display accident notification
             st.toast(accident_message)
             st.error(accident_message)
 
@@ -45,7 +45,7 @@ def calculate_speed(coordinates, tracker_id, FPS):
     coordinate_end = coordinates[tracker_id][0]
     distance = abs(coordinate_start - coordinate_end)
     time = len(coordinates[tracker_id]) / FPS
-    speed = distance / time * 3.6  # Kecepatan dalam km/h
+    speed = distance / time * 3.6  # Speed in km/h
     return speed
 
 def process_frame(frame, model, byte_track, polygon_zone, view_transformer, coordinates, vehicle_classes, accident_classes, start_time, elapsed_time, current_time, frame_height, box_annotator, label_annotator, trace_annotator, stframe, thickness, FPS, SOURCE, confidence_threshold, iou_threshold, text_scale):
@@ -83,11 +83,11 @@ def process_frame(frame, model, byte_track, polygon_zone, view_transformer, coor
             speed = calculate_speed(coordinates, tracker_id, FPS)
             labels.append(f"#{tracker_id} {int(speed)} km/h")
             st.session_state.vehicle_accident_data.append({
-                "Detik": elapsed_time, 
+                "Sec": elapsed_time, 
                 "Timestamp": timestamp, 
                 "ID": tracker_id, 
-                "Kelas": class_name, 
-                "Kecepatan (km/h)": speed
+                "Class": class_name, 
+                "Speed (km/h)": speed
             })
 
         else:
