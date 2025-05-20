@@ -131,6 +131,34 @@ Here is the application interface:
 
 ---
 
+## 🔗 Resource Links
+
+### **Model**
+
+-   [YOLOv11 Model Folder (Google Drive)](https://drive.google.com/drive/folders/1NbZ9P5k6UDKcil2YTgjRtxKi4b_PV4Md?usp=sharing)
+
+### **Output**
+
+-   [Sample Output Folder (Google Drive)](https://drive.google.com/drive/folders/1x78DBFWLp8HuywHMbkhkHCWurJufMeEz?usp=sharing)
+
+### **Datasets**
+
+-   [Real Time Accident Detection Computer Vision Project (Roboflow)](https://universe.roboflow.com/puyush-fipgg/real-time-accident-detection)
+-   [Vehicle Dataset for YOLO (DatasetNinja)](https://datasetninja.com/vehicle-dataset-for-yolo)
+-   [VisDrone2019-DET Dataset (DatasetNinja)](https://datasetninja.com/vis-drone-2019-det)
+-   [Filtered Vehicle Dataset for YOLO (Roboflow)](https://universe.roboflow.com/nyankosenseigo/vehicle-dataset-for-yolo-tzkol)
+-   [Demak Regency Transportation Agency YouTube Channel](https://www.youtube.com/@cctvdishubdemak)
+-   [Filtered VisDrone2019-DET Dataset (Roboflow)](https://universe.roboflow.com/nyankosenseigo/vizdrone2019-filtered)
+-   [Highway CCTV Images Dataset (Roboflow)](https://universe.roboflow.com/nyankosenseigo/backup-highway-cctv-images-for-vehicle-detection-dataset-pytfy)
+-   [Combined Accident Dataset (Roboflow)](https://universe.roboflow.com/nyankosenseigo/accident-unaugmented-l3c01)
+-   [Vehicle Dataset (Roboflow)](https://universe.roboflow.com/nyankosenseiroku/vehicle-kxrjg)
+-   [Accident Dataset (Roboflow)](https://universe.roboflow.com/nyankosenseiroku/accident-wwgfl)
+-   [Vehicle-Accident Dataset (Roboflow)](https://universe.roboflow.com/nyankosenseiroku/vehicle-accident-x2puh)
+-   [removebg-Vehicle-Accident Dataset (Roboflow)](https://universe.roboflow.com/nyankosenseiroku/removebg-vehicle-accident)
+-   [Dataset Zip File (Google Drive)](https://drive.google.com/drive/folders/14eA7TKHhvdQLx_WlustNO3At2CsMd4q6?usp=sharing)
+
+---
+
 ## 📜 License
 
 This project uses the **MIT License**. Please use and develop as needed.
