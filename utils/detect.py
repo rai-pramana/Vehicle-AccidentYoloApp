@@ -8,13 +8,24 @@ from utils.annotation import add_annotations
 def process_accident_detection(tracker_id, class_name, elapsed_time, timestamp):
     speed = None
 
-    st.session_state.vehicle_accident_data.append({
-        "Sec": elapsed_time, 
-        "Timestamp": timestamp, 
-        "ID": tracker_id, 
-        "Class": class_name, 
-        "Speed (km/h)": speed
-    })
+    # Check if it has been recorded before (avoid duplication)
+    already_recorded = any(
+        d["ID"] == tracker_id and d["Timestamp"] == timestamp and d["Class"] == class_name
+        for d in st.session_state.vehicle_accident_data
+    )
+    if not already_recorded:
+        st.session_state.vehicle_accident_data.append({
+            "Sec": elapsed_time, 
+            "Timestamp": timestamp, 
+            "ID": tracker_id, 
+            "Class": class_name, 
+            "Speed (km/h)": speed
+        })
+
+        # Accident enumeration only if tracker_id has never been enumerated for an accident.
+        if tracker_id not in st.session_state.counted_accident_ids:
+            st.session_state.accident_count[class_name] += 1
+            st.session_state.counted_accident_ids.add(tracker_id)
 
     if st.session_state.vehicle_accident_data:
         latest_accident = st.session_state.vehicle_accident_data[-1]  # Retrieve the latest accident data (last element)
@@ -64,13 +75,13 @@ def process_frame(frame, model, byte_track, polygon_zone, view_transformer, coor
 
     for tracker_id, [_, y], class_id in zip(detections.tracker_id, points, detections.class_id):
         class_name = model.names[class_id]
-        if tracker_id not in st.session_state.counted_ids:
-            if class_name in vehicle_classes:
-                st.session_state.vehicle_count[class_name] += 1
-            elif class_name in accident_classes:
-                st.session_state.accident_count[class_name] += 1
-            st.session_state.counted_ids.add(tracker_id)
-
+        # Vehicle enumeration only if tracker_id has never been enumerated for vehicle
+        if class_name in vehicle_classes and tracker_id not in st.session_state.counted_vehicle_ids:
+            st.session_state.vehicle_count[class_name] += 1
+            st.session_state.counted_vehicle_ids.add(tracker_id)
+        if class_name in accident_classes:
+            # Accident enumeration is executed in process_accident_detection
+            pass
         if class_name in vehicle_classes:
             coordinates[tracker_id].append(y)
 
