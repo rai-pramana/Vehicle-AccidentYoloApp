@@ -15,7 +15,7 @@ def update_real_time_statistics(vehicle_stats_placeholder, accident_stats_placeh
         with vehicle_stats_placeholder.container():
             st.subheader("Vehicle Statistics")
             fig_vehicle = px.bar(vehicle_stats_df, x="Count", y="Class", orientation='h', title="Count of Vehicles per Class")
-            st.plotly_chart(fig_vehicle, use_container_width=True, key=f"vehicle_stats_{plot_counter}")
+            st.plotly_chart(fig_vehicle, width='stretch', key=f"vehicle_stats_{plot_counter}")
             plot_counter += 1  # Increase counters for unique keys
 
     # Display graph only if there is accident data
@@ -23,7 +23,7 @@ def update_real_time_statistics(vehicle_stats_placeholder, accident_stats_placeh
         with accident_stats_placeholder.container():
             st.subheader("Accident Statistics")
             fig_accident = px.bar(accident_stats_df, x="Count", y="Class", orientation='h', title="Count of Accidents per Class")
-            st.plotly_chart(fig_accident, use_container_width=True, key=f"accident_stats_{plot_counter}")
+            st.plotly_chart(fig_accident, width='stretch', key=f"accident_stats_{plot_counter}")
             plot_counter += 1  # Increase counters for unique keys
 
     # Update real-time vehicle speed graph

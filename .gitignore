@@ -1,6 +1,6 @@
 *.pt
 *.zip
-__pycache__/
+*__pycache__/
 *.pyc
 *.onnx
 YOLOv11 L & N Vehicle and Accident Detection Results/
