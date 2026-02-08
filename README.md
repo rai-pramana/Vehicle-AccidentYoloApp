@@ -143,9 +143,12 @@ Here is the application interface:
 
 ### **Datasets**
 
+#### **Raw**:
 -   [Real Time Accident Detection Computer Vision Project (Roboflow)](https://universe.roboflow.com/puyush-fipgg/real-time-accident-detection)
 -   [Vehicle Dataset for YOLO (DatasetNinja)](https://datasetninja.com/vehicle-dataset-for-yolo)
 -   [VisDrone2019-DET Dataset (DatasetNinja)](https://datasetninja.com/vis-drone-2019-det)
+
+#### **Processed**:
 -   [Filtered Vehicle Dataset for YOLO (Roboflow)](https://universe.roboflow.com/nyankosenseigo/vehicle-dataset-for-yolo-tzkol)
 -   [Demak Regency Transportation Agency YouTube Channel](https://www.youtube.com/@cctvdishubdemak)
 -   [Filtered VisDrone2019-DET Dataset (Roboflow)](https://universe.roboflow.com/nyankosenseigo/vizdrone2019-filtered)
